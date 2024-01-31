@@ -6,12 +6,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OauthServiceFactory } from './oauth-service/oauth-service.factory';
 import { JwtModule } from '@nestjs/jwt';
 import { CommonOauthService } from './oauth-service/common-oauth.service';
-import { OauthRepository } from './repository/oauth.repository';
+import { UserRepository } from '../repository/user.repository';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from 'src/schemas/user.schema';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     HttpModule,
     ConfigModule,
     JwtModule.registerAsync({
@@ -22,19 +24,12 @@ import { User, UserSchema } from 'src/schemas/user.schema';
       }),
       inject: [ConfigService],
     }),
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        uri: `mongodb+srv://newxxson:${configService.get<string>('MONGO_DB_PWD')}@cluster0.aunvoxf.mongodb.net/?retryWrites=true&w=majority`,
-      }),
-      inject: [ConfigService],
-    }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   controllers: [OauthController],
   providers: [
     KakaoOauthService,
-    OauthRepository,
+    UserRepository,
     OauthServiceFactory,
     CommonOauthService,
   ],

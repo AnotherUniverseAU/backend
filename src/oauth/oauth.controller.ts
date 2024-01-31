@@ -30,20 +30,17 @@ export class OauthController {
     this.oauthService = this.oauthServiceFactory.getOauthService(mode);
     const userInfo = await this.oauthService.getUserInfo(code);
 
-    console.log(userInfo.id);
-    const newUser = await this.commonOauthService.findOrCreate(
-      mode,
-      userInfo.id,
-    );
+    const user = await this.commonOauthService.findOrCreate(mode, userInfo);
 
-    if (newUser.new) {
+    if (!user.verified) {
+      const signUpToken = await this.commonOauthService.getSignupToken(user);
+
       return response
         .status(201)
-        .json({ isNew: true, id: newUser.userData._id });
+        .json({ isNew: true, signup_token: signUpToken });
     } else {
-      const loginCredential = await this.commonOauthService.getUserCredentials(
-        newUser.userData,
-      );
+      const loginCredential =
+        await this.commonOauthService.getUserCredentials(user);
 
       return response.status(200).json(loginCredential);
     }
