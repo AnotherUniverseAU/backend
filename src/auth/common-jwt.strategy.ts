@@ -26,6 +26,6 @@ export class CommonJwtStrategy extends PassportStrategy(
   async validate(payload: any) {
     const id = payload.sub;
     const user = await this.userRepository.findById(id);
-    return { user: user };
+    return user;
   }
 }

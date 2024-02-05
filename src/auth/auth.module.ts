@@ -6,22 +6,17 @@ import { UserRepository } from 'src/repository/user.repository';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User } from 'src/schemas/user.schema';
 import { UserSchema } from 'src/schemas/user.schema';
-import { SignupGuard } from './signup.guard';
 import { CommonJwtGuard } from './common-jwt.guard';
 import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
 @Module({
   imports: [
     JwtModule,
     PassportModule,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
-  providers: [
-    AuthService,
-    CommonJwtGuard,
-    CommonJwtStrategy,
-    UserRepository,
-    SignupGuard,
-  ],
+  controllers: [AuthController],
+  providers: [AuthService, CommonJwtGuard, CommonJwtStrategy, UserRepository],
   exports: [AuthService],
 })
 export class AuthModule {}

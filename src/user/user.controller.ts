@@ -9,14 +9,11 @@ import {
   Param,
   Res,
 } from '@nestjs/common';
-import { User, UserDocument } from 'src/schemas/user.schema';
+import { UserDocument } from 'src/schemas/user.schema';
 import { UserService } from './user.service';
-import { SignupGuard } from 'src/auth/signup.guard';
-import { Request, Response } from 'express';
-import { SignupDTO } from './dto/signup.dto';
-import { json } from 'stream/consumers';
-import CoolsmsMessageService from 'coolsms-node-sdk';
+import { Request } from 'express';
 import { AuthService } from 'src/auth/auth.service';
+import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
 
 @Controller('user')
 export class UserController {
@@ -24,53 +21,33 @@ export class UserController {
     private userService: UserService,
     private authService: AuthService,
   ) {}
-
-  @Get('check-userid-duplicate/:id')
-  async checkIdDuplicate(@Param('id') userId: string, @Res() res: Response) {
-    const user = await this.userService.checkIdDuplicate(userId);
-    if (user)
-      return res.status(409).json({ status: 409, messgae: 'duplicate id' });
-    else return res.status(200).json({ status: 200, message: 'unique id' });
+  @UseGuards(CommonJwtGuard)
+  @Get('info')
+  getUserInfo(@Req() req: Request) {
+    const user = req.user as UserDocument;
+    const userInfo = this.userService.getUserInfo(user);
+    return userInfo;
   }
 
-  @UseGuards(SignupGuard)
-  @Post('verify-phone-num')
+  @UseGuards(CommonJwtGuard)
+  @Get('nickname')
   @HttpCode(200)
-  async verifyPhoneNum(
-    @Req() req: Request,
-    @Body('phoneNum') phoneNum: string,
-  ) {
-    let user = req.user as UserDocument;
-
-    //check duplicate and send verification code
-    await this.userService.verifyUserPhoneNum(user, phoneNum);
-    const token = await this.authService.signToken('signup', { sub: user._id });
-    return { token: token, message: 'code sent' };
+  getUserNickname(@Req() req: Request) {
+    const user = req.user as UserDocument;
+    console.log(user);
+    return { nickname: user.nickname };
   }
 
-  @UseGuards(SignupGuard)
-  @Post('confirm-phone-num')
+  @UseGuards(CommonJwtGuard)
+  @Post('nickname')
   @HttpCode(200)
-  async confirmPhoneNum(
+  async setUserNickname(
     @Req() req: Request,
-    @Body('code') code: string,
-    @Body('phoneNum') phoneNum: string,
+    @Body('nickname') nickname: string,
   ) {
     const user = req.user as UserDocument;
-    const confimation = await this.userService.confirmUserPhoneNum(
-      user,
-      phoneNum,
-      code,
-    );
-    if (confimation) {
-      return { message: 'phoneNum confirmed' };
-    }
-  }
-
-  @UseGuards(SignupGuard)
-  @Post('signup')
-  @HttpCode(200)
-  async signup(@Req() req: Request, @Body() body: SignupDTO) {
-    const user = req.user as UserDocument;
+    user.nickname = nickname;
+    await user.save();
+    return this.userService.getUserInfo(user);
   }
 }

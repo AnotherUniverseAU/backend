@@ -3,11 +3,6 @@ import { HydratedDocument, ObjectId, SchemaTypes, Types } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
-export enum Gender {
-  M = 'male',
-  F = 'female',
-}
-
 @Schema()
 export class User {
   @Prop({ type: SchemaTypes.ObjectId })
@@ -27,23 +22,33 @@ export class User {
     id: string;
   }[];
 
-  @Prop({ unique: true, sparse: true })
-  userId: string;
+  @Prop()
+  nickname: string;
 
-  @Prop({ enum: Gender })
-  gender: string;
+  @Prop({ unique: true })
+  email: string;
 
   @Prop({ unique: true })
   phoneNum: string;
 
   @Prop()
-  age: number;
-
-  @Prop({ default: false })
-  verified: boolean;
+  gender: string;
 
   @Prop()
-  verificationCode: string;
+  age: number;
+
+  @Prop({ type: Boolean, default: true })
+  isNew: boolean;
+
+  @Prop([
+    { type: Types.ObjectId, required: false, ref: 'Character', default: [] },
+  ])
+  contributedCharacters: Types.ObjectId[];
+
+  @Prop([
+    { type: Types.ObjectId, required: false, ref: 'Character', default: [] },
+  ])
+  subscribedCharacters: Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
