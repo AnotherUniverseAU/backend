@@ -12,15 +12,16 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { CharacterModule } from './character/character.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AgendaModule } from './agenda/agenda.module';
+import { ChatRoomModule } from './chatroom/chatroom.module';
 @Module({
   imports: [
     AuthModule,
     OauthModule,
     UserModule,
+    CharacterModule,
+    ChatRoomModule,
     // AgendaModule,
     ScheduleModule.forRoot(),
-    CharacterModule,
     ConfigModule.forRoot({
       isGlobal: true, // Makes the config globally available
     }),

@@ -50,4 +50,9 @@ export class UserController {
     await user.save();
     return this.userService.getUserInfo(user);
   }
+  @Post('set-liam-char')
+  @HttpCode(201)
+  async setLiamChar() {
+    return await this.userService.setLiamChar();
+  }
 }

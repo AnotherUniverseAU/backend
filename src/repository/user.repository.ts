@@ -2,12 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Document, Model, Types } from 'mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
-import { IUesrRepository } from './user.repository.interface';
 import { OauthDTO } from 'src/oauth/dto/oauth.dto';
 import { OauthUserDTO } from 'src/oauth/dto/oauth-user.dto';
 
 @Injectable()
-export class UserRepository implements IUesrRepository {
+export class UserRepository {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
   async findByOauth(mode: string, id: string): Promise<UserDocument> {
@@ -26,19 +25,13 @@ export class UserRepository implements IUesrRepository {
     const user = new this.userModel({
       _id: new Types.ObjectId(),
       oauthAccounts: [{ provider: mode, id: userInfo.id }],
+      nickname: userInfo.nickname,
+      email: userInfo.email,
+      phoneNum: userInfo.phoneNum,
+      gender: userInfo.gender,
+      age: userInfo.age,
     });
-    return await user.save();
-  }
-
-  async createByVanilla(): Promise<UserDocument> {
-    const user = new this.userModel({
-      _id: new Types.ObjectId(),
-    });
-    return await user.save();
-  }
-
-  async findByUserId(userId: string): Promise<UserDocument> {
-    const user = await this.userModel.findOne({ userId: userId });
+    await user.save();
     return user;
   }
 }

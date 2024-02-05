@@ -31,7 +31,7 @@ export class AuthService {
     } else if (mode == 'signup') {
       token = await this.jwtService.signAsync(payload, {
         secret: this.SIGNUP_TOKEN_SECRET,
-        expiresIn: '10m',
+        expiresIn: '1h',
       });
     }
     if (!token) {

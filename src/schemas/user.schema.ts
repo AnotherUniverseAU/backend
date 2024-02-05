@@ -34,6 +34,9 @@ export class User {
   @Prop()
   gender: string;
 
+  @Prop({ type: String, default: 'user' })
+  role: string;
+
   @Prop()
   age: number;
 
