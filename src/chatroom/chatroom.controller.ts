@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
+  HttpStatus,
   Post,
   Req,
   UnauthorizedException,
@@ -14,6 +16,7 @@ import { Request } from 'express';
 import { ChatRecoverDTO } from './dto/chat-recover.dto';
 import { UserDocument } from 'src/schemas/user.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
+import { Types } from 'mongoose';
 
 @Controller('chat-config')
 export class ChatRoomController {
@@ -42,5 +45,35 @@ export class ChatRoomController {
 
     const newChat = await this.chatRoomService.createChat(payload);
     return { chat: newChat };
+  }
+
+  //this is for forcing server to refresh the chat cache for sending chats
+  //this should only be used for debugging purpose
+  @UseGuards(CommonJwtGuard)
+  @Post('force-refresh')
+  @HttpCode(200)
+  async forceRefreshChatCaching(@Req() req: Request) {
+    const user = req.user as UserDocument;
+    if (user.role !== 'admin') {
+      throw new UnauthorizedException('Unauthorizzed access');
+    }
+
+    const todayChatLogs =
+      await this.chatRoomService.flushAndRetreieveChatLogToCache();
+    return todayChatLogs;
+  }
+  //this is for forcing server to check whether there are chats to send
+  //this should only be used for debugging purpose
+  @UseGuards(CommonJwtGuard)
+  @Post('force-time-check')
+  @HttpCode(200)
+  async forceTimeCheck(@Req() req: Request) {
+    const user = req.user as UserDocument;
+    if (user.role !== 'admin') {
+      throw new UnauthorizedException('Unauthorizzed access');
+    }
+
+    const hourChatLogs = this.chatRoomService.checkChatTimeToSend();
+    return hourChatLogs;
   }
 }
