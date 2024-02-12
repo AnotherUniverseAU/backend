@@ -1,12 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { User, UserDocument } from 'src/schemas/user.schema';
-import { ConfigService } from '@nestjs/config';
-import CoolsmsMessageService from 'coolsms-node-sdk';
+import { UserDocument } from 'src/schemas/user.schema';
 import { UserRepository } from 'src/repository/user.repository';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { AuthService } from 'src/auth/auth.service';
 import { userDataDTO } from './dto/userData.dto';
+import { OnEvent } from '@nestjs/event-emitter';
+import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class UserService {
@@ -15,14 +13,24 @@ export class UserService {
     return new userDataDTO(user);
   }
 
-  async setLiamChar() {
-    const charId = '65c0b542c9a646697bb644aa';
-    const userId = '65bcb2592c47f2f5ee0d464e';
-    const user = await this.userRepo.findById(userId);
+  @OnEvent('unsubscribe-user')
+  async unsubScribeUser(payload: SubscriptionEventDTO) {
+    const updatedUser =
+      await this.userRepo.removeUnsubscribedCharacters(payload);
+    console.log(
+      `unsubscribed ${payload.characterId} from user: ${payload.userId}`,
+    );
+    console.log(updatedUser);
+  }
 
-    user.subscribedCharacters = [new Types.ObjectId(charId)];
-    await user.save();
-    console.log(user);
-    return user;
+  @OnEvent('subscribe-user')
+  async subscribeUser(payload: SubscriptionEventDTO) {
+    const user = await this.userRepo.addSubscribedCharacter(payload);
+    console.log(
+      'user domain, added character:',
+      payload.characterId,
+      'to: ',
+      payload.userId,
+    );
   }
 }

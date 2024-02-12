@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Document, Model, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
 import { OauthDTO } from 'src/oauth/dto/oauth.dto';
-import { OauthUserDTO } from 'src/oauth/dto/oauth-user.dto';
+import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 
 @Injectable()
 export class UserRepository {
@@ -33,5 +33,42 @@ export class UserRepository {
     });
     await user.save();
     return user;
+  }
+
+  async addSubscribedCharacter(payload: SubscriptionEventDTO) {
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(
+        payload.userId,
+        {
+          $push: {
+            subscribedCharacters: new Types.ObjectId(payload.characterId),
+            subscriptionIds: new Types.ObjectId(payload.subscriptionId),
+          },
+        },
+        { new: true },
+      )
+      .exec();
+    return updatedUser;
+  }
+
+  async removeUnsubscribedCharacters(
+    payload: SubscriptionEventDTO,
+  ): Promise<User> {
+    // Find the user and update in one step using MongoDB's $pull operator
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(
+        payload.userId,
+        {
+          $pull: {
+            subscribedCharacters: new Types.ObjectId(payload.characterId),
+            subscriptionIds: new Types.ObjectId(payload.subscriptionId),
+          },
+        },
+        { new: true }, // Return the updated document
+      )
+      .exec();
+
+    return updatedUser;
   }
 }

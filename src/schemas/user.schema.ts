@@ -52,6 +52,11 @@ export class User {
     { type: Types.ObjectId, required: false, ref: 'Character', default: [] },
   ])
   subscribedCharacters: Types.ObjectId[];
+
+  @Prop([
+    { type: Types.ObjectId, required: false, ref: 'Subscription', default: [] },
+  ])
+  subscriptionIds: Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
