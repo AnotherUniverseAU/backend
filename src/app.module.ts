@@ -13,6 +13,8 @@ import { UserModule } from './user/user.module';
 import { CharacterModule } from './character/character.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ChatRoomModule } from './chatroom/chatroom.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { SubscriptionModule } from './subscription/subscription.module';
 @Module({
   imports: [
     AuthModule,
@@ -20,7 +22,9 @@ import { ChatRoomModule } from './chatroom/chatroom.module';
     UserModule,
     CharacterModule,
     ChatRoomModule,
+    SubscriptionModule,
     // AgendaModule,
+    EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true, // Makes the config globally available
