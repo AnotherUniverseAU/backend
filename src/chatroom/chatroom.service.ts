@@ -1,10 +1,9 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { CharacterChatRepository } from 'src/repository/character-chat.repository';
 import { UserDocument } from 'src/schemas/user.schema';
 import { ChatRecoverDTO } from './dto/chat-recover.dto';
 import {
-  CharacterChat,
   CharacterChatDocument,
   ChatLog,
 } from 'src/schemas/character-chat.schema';
@@ -13,9 +12,6 @@ import { Cron } from '@nestjs/schedule';
 import { ChatCacheRepository } from 'src/repository/chat-cache.repository';
 import { ChatCache } from 'src/schemas/chat-cache.schema';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Types } from 'mongoose';
-import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
-
 @Injectable()
 export class ChatRoomService {
   constructor(
