@@ -15,21 +15,48 @@ export class User {
         id: { type: String, required: true, unique: true },
       },
     ],
-    // _id: false, // Avoid generating a subdocument "_id" field
+    _id: false, // Avoid generating a subdocument "_id" field
   })
   oauthAccounts: {
     provider: string;
     id: string;
   }[];
 
+  @Prop()
+  nickname: string;
+
+  @Prop({ unique: true })
+  email: string;
+
   @Prop({ unique: true })
   phoneNum: string;
 
-  @Prop({ unique: true, sparse: true })
-  email: string;
+  @Prop()
+  gender: string;
+
+  @Prop({ type: String, default: 'user' })
+  role: string;
 
   @Prop()
-  birthYear: string;
+  age: number;
+
+  @Prop({ type: Boolean, default: true })
+  isNew: boolean;
+
+  @Prop([
+    { type: Types.ObjectId, required: false, ref: 'Character', default: [] },
+  ])
+  contributedCharacters: Types.ObjectId[];
+
+  @Prop([
+    { type: Types.ObjectId, required: false, ref: 'Character', default: [] },
+  ])
+  subscribedCharacters: Types.ObjectId[];
+
+  @Prop([
+    { type: Types.ObjectId, required: false, ref: 'Subscription', default: [] },
+  ])
+  subscriptionIds: Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

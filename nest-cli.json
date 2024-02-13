@@ -3,6 +3,8 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
+    "webpack": true,
+    "webpackConfigPath": "webpack-hmr.config.js",
     "deleteOutDir": true
   }
 }

@@ -45,8 +45,14 @@ export class KakaoOauthService implements IOauth {
   }
 
   async getUserInfo(code: string): Promise<OauthDTO> {
-    const access_token = await this.getAccessToken(code);
-    console.log('access_token obtained', access_token);
+    console.log('obtaining user info');
+    let access_token: string;
+    try {
+      access_token = await this.getAccessToken(code);
+    } catch (err) {
+      console.log(err);
+      throw new Error(err);
+    }
     const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
     const header = {
       Authorization: `Bearer ${access_token}`,
@@ -56,10 +62,26 @@ export class KakaoOauthService implements IOauth {
       this.httpService.get(KAKAO_USER_URL, { headers: header }),
     );
 
-    console.log(response.data);
+    const userInfo = this.extractUserInfo(response.data);
 
-    const { id, kakao_account } = response.data;
-    const userInfo = new OauthDTO(id);
     return userInfo;
+  }
+
+  extractUserInfo(data: any): OauthDTO {
+    const { id, kakao_account } = data;
+    const { profile, email, phone_number, birthyear, gender } = kakao_account;
+    const phoneNum = phone_number.replace('+82 ', '0');
+    const { nickname } = profile;
+    const age = this.calculateAge(birthyear);
+    const userInfo = new OauthDTO(id, nickname, email, phoneNum, age, gender);
+
+    return userInfo;
+  }
+
+  calculateAge(birthyear: string): number {
+    const currentYear = new Date().getFullYear();
+    const birthyearInt = parseInt(birthyear, 10);
+    const age = currentYear - birthyearInt;
+    return age;
   }
 }

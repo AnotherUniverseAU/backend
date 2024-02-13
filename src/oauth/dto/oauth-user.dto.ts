@@ -1,6 +1,6 @@
 import { UserDocument } from 'src/schemas/user.schema';
 
-export class NewUserDTO {
+export class OauthUserDTO {
   private isNew: boolean;
   private user: UserDocument;
   constructor(isNew: boolean, user: UserDocument) {
