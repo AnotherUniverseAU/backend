@@ -39,6 +39,9 @@ export class Character {
 
   @Prop({ type: String, default: 'https://test.png' })
   imgUrl: string;
+
+  @Prop({ type: Number, default: 0 })
+  likes: number;
 }
 
 export const CharacterSchema = SchemaFactory.createForClass(Character);
