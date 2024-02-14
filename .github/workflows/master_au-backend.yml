@@ -26,9 +26,8 @@ jobs:
           echo "MongoDB Host: $MONGO_DB_HOST"
           # Don't print out the password, ensure it's being set by counting characters
           echo "MongoDB Password Length: ${#MONGO_DB_PWD}"
-      - script: |
-          chmod +x deploy.sh
-        displayName: 'Set execute permissions on deploy.sh'
+      - name: Set execute permissions on deploy.sh
+        run: chmod +x deploy.sh
 
       - name: npm install, build, and test
         run: |
