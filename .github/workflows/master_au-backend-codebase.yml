@@ -27,8 +27,16 @@ jobs:
           npm run build --if-present
           npm run test --if-present
 
-      - name: Zip artifact for deployment
-        run: zip release.zip . -r
+        env:
+          MONGODB_ID: ${{ secrets.MONGODB_ID }}
+          MONGO_DB_PWD: ${{ secrets.MONGO_DB_PWD }}
+          MONGO_DB_HOST: ${{ secrets.MONGO_DB_HOST }}
+
+      - name: Make deploy.sh executable
+        run: chmod +x deploy.sh
+
+      - name: Zip artifact for deployment excluding node_modules
+        run: zip -r release.zip . -x node_modules/**\* .git/**\*
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
