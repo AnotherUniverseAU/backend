@@ -1,7 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { CreateAxiosDefaults } from 'axios';
-import { HydratedDocument, SchemaType, SchemaTypes, Types } from 'mongoose';
-import { CreateDateColumn } from 'typeorm';
+import { HydratedDocument, SchemaTypes, Types } from 'mongoose';
 
 export type CharacterDocument = HydratedDocument<Character>;
 
@@ -38,10 +36,16 @@ export class Character {
   hashtags: string[];
 
   @Prop({ type: String, default: 'https://test.png' })
-  imgUrl: string;
+  coverImageUrl: string;
 
   @Prop({ type: Number, default: 0 })
   likes: number;
+
+  @Prop({ type: String, default: 'https://test.png' })
+  profilePicUrl: string;
+
+  @Prop([{ type: String, default: [] }])
+  helloMessage: string[];
 }
 
 export const CharacterSchema = SchemaFactory.createForClass(Character);

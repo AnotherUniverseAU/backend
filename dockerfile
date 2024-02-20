@@ -5,7 +5,8 @@ FROM node:18
 WORKDIR /usr/src/app
 
 # Clone your NestJS project from Git
-RUN git clone https://github.com/newxxson/BE_AU.git .
+RUN git clone https://github.com/newxxson/BE_AU.git . && \
+    git pull
 
 # Install dependencies
 RUN npm install

@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Character, CharacterSchema } from 'src/schemas/character.schema';
 import { CharacterController } from './character.controller';

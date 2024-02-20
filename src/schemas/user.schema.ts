@@ -49,7 +49,13 @@ export class User {
   contributedCharacters: Types.ObjectId[];
 
   @Prop([
-    { type: Types.ObjectId, required: false, ref: 'Character', default: [] },
+    {
+      type: Types.ObjectId,
+      required: false,
+      unique: true,
+      ref: 'Character',
+      default: [],
+    },
   ])
   subscribedCharacters: Types.ObjectId[];
 

@@ -1,4 +1,4 @@
-import { CharacterDocument } from 'src/schemas/character.schema';
+import { Character, CharacterDocument } from 'src/schemas/character.schema';
 
 export class CharacterDTO {
   readonly id: string; //캐릭터 식별자
@@ -8,9 +8,11 @@ export class CharacterDTO {
   readonly name: string; //캐릭터 이름
   readonly title: string; //캐릭터 소속 작품 이름
   readonly hashtags: string[]; //해시태그들 [] @@해시태그(#) 미포함
-  readonly imgUrl: string; //s3 이미지 링크
+  readonly coverImageUrl: string; //s3 이미지 링크
+  readonly likes: number; //좋아요 수
+  readonly profilePicUrl: string; //s3 이미지 링크
 
-  constructor(character: CharacterDocument) {
+  constructor(character: Character) {
     this.id = character._id.toString();
     this.creatorNickname = character.creator.nickname;
     this.creatorWords = character.creatorWords;
@@ -20,7 +22,9 @@ export class CharacterDTO {
     this.name = character.name;
     this.title = character.title;
     this.hashtags = character.hashtags;
-    this.imgUrl = character.imgUrl;
+    this.coverImageUrl = character.coverImageUrl;
+    this.likes = character.likes;
+    this.profilePicUrl = character.profilePicUrl;
   }
   short() {
     return {
@@ -28,7 +32,7 @@ export class CharacterDTO {
       creatorNickname: this.creatorNickname,
       name: this.name,
       title: this.title,
-      imgUrl: this.imgUrl,
+      coverImageUrl: this.coverImageUrl,
     };
   }
 }

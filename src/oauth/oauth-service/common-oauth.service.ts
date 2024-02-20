@@ -31,7 +31,7 @@ export class CommonOauthService {
   }
 
   async getUserCredentials(user: User): Promise<LoginCredentialDTO> {
-    const payload = { sub: user._id };
+    const payload = { sub: user._id.toString() };
 
     const access_token = await this.authService.signToken('access', payload);
     const refresh_token = await this.authService.signToken('refresh', payload);
@@ -40,7 +40,7 @@ export class CommonOauthService {
   }
 
   async getSignupToken(user: User): Promise<string> {
-    const payload = { sub: user._id };
+    const payload = { sub: user._id.toString() };
     const signUpToken = await this.authService.signToken('signup', payload);
 
     return signUpToken;
