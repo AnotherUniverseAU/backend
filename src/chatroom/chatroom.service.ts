@@ -1,42 +1,48 @@
-import { Injectable } from '@nestjs/common';
+import { ConsoleLogger, Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
-import { CharacterChatRepository } from 'src/repository/character-chat.repository';
+import { CharacterChatRepository } from 'src/repository/chat-repository/character-chat.repository';
 import { UserDocument } from 'src/schemas/user.schema';
 import { ChatRecoverDTO } from './dto/chat-recover.dto';
-import {
-  CharacterChatDocument,
-  ChatLog,
-} from 'src/schemas/character-chat.schema';
+import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
 import { Cron } from '@nestjs/schedule';
-import { ChatCacheRepository } from 'src/repository/chat-cache.repository';
-import { ChatCache } from 'src/schemas/chat-cache.schema';
+import { ChatCacheRepository } from 'src/repository/chat-repository/chat-cache.repository';
+import { ChatCache } from 'src/schemas/chat-schema/chat-cache.schema';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ChatRoomUtils } from './chatroom.utils';
 @Injectable()
 export class ChatRoomService {
   constructor(
     private characterChatRepo: CharacterChatRepository,
     private chatCacheRepo: ChatCacheRepository,
     private eventEmitter: EventEmitter2,
+    private chatRoomUtils: ChatRoomUtils,
   ) {
     this.flushAndRetreieveChatLogToCache();
     this.checkChatTimeToSend();
   }
-
-  @Cron('0 0 * * *')
+  //this is ran at 15:00 everyday because of utc
+  @Cron('0 15 * * *')
   async flushAndRetreieveChatLogToCache() {
     const start = new Date();
     console.log('begin refreshing cache for: ', start);
     await this.chatCacheRepo.refreshCache();
 
     console.log('refresh complete');
-    const todayChatLogs = await this.characterChatRepo.findByDay(start);
-    await this.chatCacheRepo.pushChatLogs(todayChatLogs);
+    const todayCharacterChat = await this.characterChatRepo.findByDay(start);
 
-    console.log("pushing today's chat log complete with: ", todayChatLogs);
-    return todayChatLogs;
+    const result = await this.chatCacheRepo.pushChatLogs(todayCharacterChat);
+
+    console.log(
+      "pushing today's chat log complete with: ",
+      todayCharacterChat,
+      result,
+    );
+    return todayCharacterChat;
   }
 
+  async moveOldChatsToArchive() {}
+  //check every hour
   @Cron('0 * * * *')
   async checkChatTimeToSend() {
     const startOfHour = new Date();
@@ -52,7 +58,7 @@ export class ChatRoomService {
 
   private scheduleSend(hourChatLogs: ChatCache[]) {
     hourChatLogs.map((chatCache) => {
-      const timeTOsend = chatCache.timeToSend.getTime();
+      const timeTOsend = chatCache.chatLog.timeToSend.getTime();
       const currentTime = new Date().getTime();
 
       setTimeout(() => {
@@ -64,7 +70,7 @@ export class ChatRoomService {
   async recoverChat(
     user: UserDocument,
     payload: ChatRecoverDTO,
-  ): Promise<Record<string, ChatLog[]>> {
+  ): Promise<Record<string, CharacterChat[]>> {
     const { characterIds, timestamp } = payload;
     console.log('requesting ', characterIds);
     //check if requested characterIds are valid
@@ -78,9 +84,42 @@ export class ChatRoomService {
     return chatDict;
   }
 
-  async createChat(payload: ChatCreationDTO): Promise<CharacterChatDocument> {
-    const characterChat = await this.characterChatRepo.findOrCreate(payload);
-    return characterChat;
+  async createChat(payload: ChatCreationDTO): Promise<CharacterChat> {
+    const result = await this.characterChatRepo.addCharacterChat(payload);
+    return result;
+  }
+
+  async createMultipleChat(
+    characterId: string,
+    file: Express.Multer.File,
+  ): Promise<{ chatHeaders: string[]; errorLines: string[] }> {
+    const lines = await this.chatRoomUtils.changeBufferToReadableStrings(
+      file.buffer,
+    );
+    //chatCreationDTOs is the parsed chat from the file
+    const { chatCreationDTOs, errorLines } =
+      this.chatRoomUtils.parseTextToChatCreationDTO(characterId, lines);
+    //add one instance to create the characterchat document incase this is the first time
+
+    const result =
+      await this.characterChatRepo.addManyCharacterChats(chatCreationDTOs);
+    const chatHeaders = result.map((chat) => chat.chatLog.content[0]);
+    return { chatHeaders, errorLines };
+  }
+
+  async addReplyToChat(
+    characterId: string,
+    file: Express.Multer.File,
+  ): Promise<{ result: any; errorLines: string[]; chatHeaders: string[] }> {
+    const lines = await this.chatRoomUtils.changeBufferToReadableStrings(
+      file.buffer,
+    );
+    const { chatReplyDTOs, errorLines } =
+      this.chatRoomUtils.parseTextToChatReplyDTO(characterId, lines);
+    //returns bulkwrite result but there was an error with that type match so i just set to any
+    const result = await this.characterChatRepo.addReplies(chatReplyDTOs);
+    const chatHeaders = chatReplyDTOs.map((chat) => chat.reply[0]);
+    return { result, errorLines, chatHeaders };
   }
 
   private validateRecoverRequest(user: UserDocument, characterIds: string[]) {
@@ -104,16 +143,16 @@ export class ChatRoomService {
   private async retrieveChat(
     validatedCharacterIds: string[],
     timestamp: Date,
-  ): Promise<Record<string, ChatLog[]>> {
-    const dictionary: Record<string, ChatLog[]> = {};
+  ): Promise<Record<string, CharacterChat[]>> {
+    const dictionary: Record<string, CharacterChat[]> = {};
 
     await Promise.all(
-      validatedCharacterIds.map(async (id) => {
+      validatedCharacterIds.map(async (characterId) => {
         const characterChat = await this.characterChatRepo.findByIdAndTime(
-          id,
+          characterId,
           timestamp,
         );
-        dictionary[id] = characterChat;
+        dictionary[characterId] = characterChat;
       }),
     );
 

@@ -1,5 +1,6 @@
 import {
   ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   SubscribeMessage,
   WebSocketGateway,
@@ -7,9 +8,12 @@ import {
 } from '@nestjs/websockets';
 import { Socket, Server } from 'socket.io';
 import { OnEvent } from '@nestjs/event-emitter';
-import { ChatCache } from 'src/schemas/chat-cache.schema';
+import { ChatCache } from 'src/schemas/chat-schema/chat-cache.schema';
 import { ChatGatewayService } from './chat-gateway.service';
 import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
+import { UserReplyDTO } from '../dto/user-reply.dto';
+import { plainToInstance } from 'class-transformer';
+import { ImageReplyDTO } from '../dto/image-reply.dto';
 
 @WebSocketGateway({
   namespace: 'socket/chat',
@@ -20,6 +24,7 @@ export class ChatGateway implements OnGatewayConnection {
 
   private clientConnectionCheck = new Map<string, NodeJS.Timeout>();
   private clientSocketMap = new Map<string, string>();
+  private chatDataMap = new Map<string, ChatCache>();
 
   @WebSocketServer()
   server: Server;
@@ -55,14 +60,16 @@ export class ChatGateway implements OnGatewayConnection {
     console.log('queueing disconnection');
     const timeout = this.chatGatewayService.createDisconnectionTimeout(client);
     this.clientConnectionCheck.set(client.id, timeout);
-    //open pong for refreshing
-    client.on('pong', () => {
+    //open ping for refreshing
+    client.on('ping', () => {
       console.log('refreshing connection check with: ', client.data.userId);
       clearTimeout(this.clientConnectionCheck.get(client.id));
 
       const timeout =
         this.chatGatewayService.createDisconnectionTimeout(client);
       this.clientConnectionCheck.set(client.id, timeout);
+
+      client.emit('pong', 'refreshed');
     });
 
     client.emit('message', 'hello from server');
@@ -76,9 +83,24 @@ export class ChatGateway implements OnGatewayConnection {
 
   @OnEvent('broadcast')
   boardcastMessage(payload: ChatCache): any {
-    console.log('sending chat: ', payload);
+    console.log('gatway domain broadcasting chat: ', payload);
 
-    this.server.to(payload.characterId.toString()).emit('message', payload);
+    const oldChatData = this.chatDataMap.get(
+      payload.chatLog.characterId.toString(),
+    );
+    if (oldChatData) {
+      console.log('refreshing chatDataMap');
+      this.chatGatewayService.updateChatDataMap(oldChatData);
+    }
+    console.log('update chatDataMap to new chat');
+    this.chatDataMap.set(payload.chatLog.characterId.toString(), payload);
+
+    this.server.to(payload.chatLog.characterId.toString()).emit('message', {
+      characterId: payload.chatLog.characterId,
+      content: payload.chatLog.content,
+      imgUrl: payload.chatLog.imgUrl,
+      timeToSend: payload.chatLog.timeToSend,
+    });
   }
 
   @OnEvent('unsubscribe-user')
@@ -129,8 +151,39 @@ export class ChatGateway implements OnGatewayConnection {
     );
   }
 
-  @SubscribeMessage('reply')
-  handleReply(@ConnectedSocket() client: Socket, payload: any) {}
+  @SubscribeMessage('user-reply')
+  async handleReply(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: UserReplyDTO,
+  ) {
+    const userId = client.data.userId as string;
+    const chatData = this.chatDataMap.get(payload.characterId);
+    const content = chatData ? chatData.chatLog.content : [];
+    //save to cache
+    await this.chatGatewayService.handleUserReply(userId, payload, content);
+
+    client.emit('message', 'reply saved');
+  }
+
+  @SubscribeMessage('image-reply')
+  async handImageReply(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: ImageReplyDTO,
+  ) {
+    console.log('payload: ', payload);
+    const userId = client.data.userId as string;
+    const chatData = this.chatDataMap.get(payload.characterId);
+    const content = chatData ? chatData.chatLog.content : [];
+    const result = await this.chatGatewayService.handleImageReply(
+      userId,
+      payload,
+      content,
+    );
+
+    if (result) {
+      client.emit('message', 'image reply saved');
+    }
+  }
 
   private getSocket(socketId: string) {
     const socket = (this.server as any).sockets.get(socketId);

@@ -1,14 +1,15 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpException,
   HttpStatus,
   Post,
   Req,
   UnauthorizedException,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ChatRoomService } from './chatroom.service';
 import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
@@ -16,7 +17,7 @@ import { Request } from 'express';
 import { ChatRecoverDTO } from './dto/chat-recover.dto';
 import { UserDocument } from 'src/schemas/user.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
-import { Types } from 'mongoose';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('chat-config')
 export class ChatRoomController {
@@ -32,6 +33,7 @@ export class ChatRoomController {
     return chatDict;
   }
 
+  //creating character chat. This is only for admin. This creates only one instance.
   @UseGuards(CommonJwtGuard)
   @Post('create')
   @HttpCode(201)
@@ -45,6 +47,54 @@ export class ChatRoomController {
 
     const newChat = await this.chatRoomService.createChat(payload);
     return { chat: newChat };
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @Post('create-multiple')
+  @HttpCode(201)
+  async createMultipleCharcterChat(
+    @Req() req: Request,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('characterId') characterId: string,
+  ) {
+    const user = req.user as UserDocument;
+    if (user.role != 'admin')
+      throw new UnauthorizedException('unauthorized access');
+    if (!characterId || !file) {
+      throw new HttpException(
+        'characterId and file must be provided',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const { errorLines, chatHeaders } =
+      await this.chatRoomService.createMultipleChat(characterId, file);
+
+    return { errorLines, chatHeaders };
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @Post('add-reply')
+  @HttpCode(201)
+  async addReplyToChat(
+    @Req() req: Request,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('characterId') characterId: string,
+  ) {
+    const user = req.user as UserDocument;
+    if (user.role != 'admin')
+      throw new UnauthorizedException('unauthorized access');
+    if (!characterId || !file) {
+      throw new HttpException(
+        'characterId and file must be provided',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const { result, errorLines, chatHeaders } =
+      await this.chatRoomService.addReplyToChat(characterId, file);
+
+    return { result, errorLines, chatHeaders };
   }
 
   //this is for forcing server to refresh the chat cache for sending chats
@@ -73,7 +123,7 @@ export class ChatRoomController {
       throw new UnauthorizedException('Unauthorizzed access');
     }
 
-    const hourChatLogs = this.chatRoomService.checkChatTimeToSend();
+    const hourChatLogs = await this.chatRoomService.checkChatTimeToSend();
     return hourChatLogs;
   }
 }
