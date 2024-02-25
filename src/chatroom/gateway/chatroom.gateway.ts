@@ -21,11 +21,12 @@ import { Types } from 'mongoose';
 export class ChatGateway implements OnGatewayConnection {
   private chatDataMap = new Map<string, ChatCache>();
   constructor(private chatGatewayService: ChatGatewayService) {
+    //test data
     this.chatDataMap.set('65c0b542c9a646697bb644aa', {
       chatLog: {
         characterId: new Types.ObjectId('65c0b542c9a646697bb644aa'),
         content: ['hey', 'whatup'],
-        reply: [],
+        reply: ['test', 'ㅎㅇㅎㅇ'],
         imgUrl: ['test'],
         timeToSend: new Date('2024-02-20T10:54:00.000Z'),
       },
@@ -99,7 +100,7 @@ export class ChatGateway implements OnGatewayConnection {
     );
     if (oldChatData) {
       console.log('refreshing chatDataMap');
-      this.chatGatewayService.updateChatDataMap(oldChatData);
+      this.chatGatewayService.updateChatCache(oldChatData);
     }
     console.log('update chatDataMap to new chat');
     this.chatDataMap.set(payload.chatLog.characterId.toString(), payload);
@@ -194,6 +195,22 @@ export class ChatGateway implements OnGatewayConnection {
     if (result) {
       client.emit('message', 'image reply saved');
     }
+  }
+
+  @SubscribeMessage('character-reply')
+  async getCharacterReply(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: any,
+  ) {
+    const characterId = payload.characterId as string;
+    const userId = client.data.userId as string;
+    const reply = await this.chatGatewayService.handleCharacterReplyRequest(
+      userId,
+      characterId,
+      this.chatDataMap,
+    );
+
+    client.emit('message', { characterId, reply });
   }
 
   private getSocket(socketId: string) {
