@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
@@ -12,6 +12,7 @@ import { BlobServiceClient } from '@azure/storage-blob';
 import { ConfigService } from '@nestjs/config';
 import { ImageReplyDTO } from '../dto/image-reply.dto';
 import { ChatLog } from 'src/schemas/chat-schema/chat-log.schema';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class ChatGatewayService {
@@ -83,9 +84,32 @@ export class ChatGatewayService {
     client.disconnect();
   }
 
-  async updateChatDataMap(payload: ChatCache) {
+  async updateChatCache(payload: ChatCache) {
     const result = await this.chatCacheRepo.updateOne(payload);
     return result;
+  }
+
+  async handleCharacterReplyRequest(
+    userId: string,
+    characterId: string,
+    chatDataMap: Map<string, ChatCache>,
+  ): Promise<string[]> {
+    const isSubscribed = await this.verifyUserSubscription(userId, characterId);
+    if (!isSubscribed) {
+      throw new UnauthorizedException('user not subscribed to character');
+    }
+
+    const chatData = chatDataMap.get(characterId);
+    return chatData.chatLog.reply;
+  }
+
+  async verifyUserSubscription(userId: string, characterId: string) {
+    const user = await this.userRepo.findById(userId);
+    if (user.subscribedCharacters.includes(new Types.ObjectId(characterId))) {
+      return true;
+    } else {
+      false;
+    }
   }
 
   async handleUserReply(

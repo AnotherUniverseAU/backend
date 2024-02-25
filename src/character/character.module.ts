@@ -9,6 +9,7 @@ import {
   CharacterCreation,
   CharacterCreationSchema,
 } from 'src/schemas/character-creation.schema';
+import { CharacterCreationRepository } from 'src/repository/character-creation.repository';
 
 @Module({
   imports: [
@@ -19,6 +20,10 @@ import {
     ]),
   ],
   controllers: [CharacterController],
-  providers: [CharacterService, CharacterRepository],
+  providers: [
+    CharacterService,
+    CharacterRepository,
+    CharacterCreationRepository,
+  ],
 })
 export class CharacterModule {}
