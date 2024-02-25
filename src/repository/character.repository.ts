@@ -26,4 +26,12 @@ export class CharacterRepository {
     const newInstance = new this.characterModel(characterData);
     return await newInstance.save();
   }
+
+  async getHelloMessage(charcterId: string): Promise<string[]> {
+    const character = await this.characterModel.findById(charcterId, {
+      helloMessage: 1,
+      _id: 0,
+    });
+    return character.helloMessage;
+  }
 }

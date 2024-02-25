@@ -5,7 +5,7 @@ export type SubscriptionDocument = HydratedDocument<Subscription>;
 
 @Schema()
 export class Subscription {
-  @Prop({ type: Types.ObjectId, required: true, unique: true })
+  @Prop({ type: Types.ObjectId, required: true })
   _id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, required: true, ref: 'Character' })
@@ -25,4 +25,3 @@ export class Subscription {
 }
 
 export const SubscriptionSchema = SchemaFactory.createForClass(Subscription);
-SubscriptionSchema.index({ renewalDate: 1 });

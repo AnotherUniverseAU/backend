@@ -4,7 +4,6 @@ import { Model, Types } from 'mongoose';
 import { ChatCreationDTO } from 'src/chatroom/dto/chat-creation.dto';
 import { ChatReplyDTO } from 'src/chatroom/dto/chat-reply.dto';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
-import { BulkWriteResult } from 'mongodb';
 import { ChatLog } from 'src/schemas/chat-schema/chat-log.schema';
 @Injectable()
 export class CharacterChatRepository {

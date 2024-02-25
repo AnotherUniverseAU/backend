@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
@@ -11,6 +11,8 @@ import { UserReplyRepository } from 'src/repository/user-reply-repository/user-r
 import { BlobServiceClient } from '@azure/storage-blob';
 import { ConfigService } from '@nestjs/config';
 import { ImageReplyDTO } from '../dto/image-reply.dto';
+import { ChatLog } from 'src/schemas/chat-schema/chat-log.schema';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class ChatGatewayService {
@@ -82,39 +84,81 @@ export class ChatGatewayService {
     client.disconnect();
   }
 
-  async updateChatDataMap(payload: ChatCache) {
+  async updateChatCache(payload: ChatCache) {
     const result = await this.chatCacheRepo.updateOne(payload);
     return result;
+  }
+
+  async handleCharacterReplyRequest(
+    userId: string,
+    characterId: string,
+    chatDataMap: Map<string, ChatCache>,
+  ): Promise<string[]> {
+    const isSubscribed = await this.verifyUserSubscription(userId, characterId);
+    if (!isSubscribed) {
+      throw new UnauthorizedException('user not subscribed to character');
+    }
+
+    const chatData = chatDataMap.get(characterId);
+    return chatData.chatLog.reply;
+  }
+
+  async verifyUserSubscription(userId: string, characterId: string) {
+    const user = await this.userRepo.findById(userId);
+    if (user.subscribedCharacters.includes(new Types.ObjectId(characterId))) {
+      return true;
+    } else {
+      false;
+    }
   }
 
   async handleUserReply(
     userId: string,
     userReply: UserReplyDTO,
-    content: string[],
+    chatLog: ChatLog,
   ) {
     const oldReply = await this.userReplyCacheRepo.getUserReply(
       userId,
       userReply.characterId,
     );
-    console.log('oldReply: ', oldReply);
-    console.log('content', content);
+
+    //handling reply to character hello message
+    if (userReply.isNew) {
+      console.log('handling hello message reply');
+      if (oldReply) {
+        await this.userReplyCacheRepo.updateUserReplyCache(userId, userReply);
+      } else {
+        await this.userReplyCacheRepo.createHelloReplyCache(userId, userReply);
+      }
+      return;
+    }
+
     //---------------------------------------------------------------
     //currently, we write back the cache upon reply of every new character chat
     //but, in case of optimization, we can write back cache on a daily basis
     //---------------------------------------------------------------
     //if old cache exists and targetTimeToSend is different, save to db and update cache
-    if (oldReply && oldReply.targetTimeToSend !== userReply.targetTimeToSend) {
-      console.log('oldReply outdated, saving to db and updating cache');
+    if (
+      oldReply &&
+      (new Date(oldReply.targetTimeToSend).getTime() !=
+        chatLog.timeToSend.getTime() ||
+        oldReply.isAfterCharacterReply != userReply.isAfterCharacterReply)
+    ) {
+      console.log(
+        'oldReply outdated, saving to db and updating cache',
+        oldReply,
+      );
       await this.userReplyRepo.save(oldReply);
       await this.userReplyCacheRepo.createUserReplyCache(
         userId,
         userReply,
-        content,
+        chatLog,
       );
     } else if (
       //if old cache exists and targetTimeToSend is same, update cache
       oldReply &&
-      oldReply.targetTimeToSend === userReply.targetTimeToSend
+      new Date(oldReply.targetTimeToSend).getTime() ==
+        chatLog.timeToSend.getTime()
     ) {
       console.log('reply cache hit, updating cache');
       await this.userReplyCacheRepo.updateUserReplyCache(userId, userReply);
@@ -124,7 +168,7 @@ export class ChatGatewayService {
       await this.userReplyCacheRepo.createUserReplyCache(
         userId,
         userReply,
-        content,
+        chatLog,
       );
     }
   }
@@ -132,12 +176,13 @@ export class ChatGatewayService {
   async handleImageReply(
     userId: string,
     imageReply: ImageReplyDTO,
-    content: string[],
+    chatLog: ChatLog,
   ) {
     const fileBuffer = imageReply.imageBuffer;
     const { newCharacterFileName, newUserFileName } = this.getFileName(
       userId,
       imageReply,
+      chatLog.timeToSend,
     );
     const characterResult = await this.uploadImageToAzure(
       fileBuffer,
@@ -147,30 +192,35 @@ export class ChatGatewayService {
       fileBuffer,
       newUserFileName,
     );
-    console.log('image upload result: ', characterResult, userResult);
+    console.log('image upload result: ', characterResult.fileUrl);
 
     const newUserReply = new UserReplyDTO(
       imageReply.characterId,
-      [characterResult.fileUrl],
-      imageReply.targetTimeToSend,
+      characterResult.fileUrl,
+      imageReply.isAfterCharacterReply,
+      imageReply.isNew,
     );
 
     //save to cache as userReply
-    await this.handleUserReply(userId, newUserReply, content);
+    await this.handleUserReply(userId, newUserReply, chatLog);
 
     return { characterResult, userResult };
   }
 
-  getFileName(userId: string, imageReply: ImageReplyDTO) {
+  getFileName(
+    userId: string,
+    imageReply: ImageReplyDTO,
+    targetTimeToSend: Date,
+  ) {
     //this one is for characterGroup save foramt
     const newCharacterFileName =
-      `${imageReply.characterId}/${imageReply.targetTimeToSend}/${userId}-${new Date()}` +
+      `${imageReply.characterId}/${targetTimeToSend}/${userId}-${new Date()}` +
       '.' +
       imageReply.fileFormat;
     //this one is for userGroup save format. If the load is too heavy,
     //this part can be removed
     const newUserFileName =
-      `${userId}/${imageReply.characterId}/${imageReply.targetTimeToSend}/${new Date()}` +
+      `${userId}/${imageReply.characterId}/${targetTimeToSend}/${new Date()}` +
       '.' +
       imageReply.fileFormat;
 

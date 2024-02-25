@@ -1,4 +1,4 @@
-import { ConsoleLogger, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { CharacterChatRepository } from 'src/repository/chat-repository/character-chat.repository';
 import { UserDocument } from 'src/schemas/user.schema';

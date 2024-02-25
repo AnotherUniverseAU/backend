@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { UserDocument } from 'src/schemas/user.schema';
 import { UserRepository } from 'src/repository/user.repository';
 import { userDataDTO } from './dto/userData.dto';

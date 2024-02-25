@@ -25,7 +25,11 @@ export class AuthController {
     }
     const token = authHeader.split(' ')[1];
     const payload = await this.authService.verifyToken('refresh', token);
-    const access_token = await this.authService.signToken('access', payload);
+    const new_payload = { sub: payload.sub };
+    const access_token = await this.authService.signToken(
+      'access',
+      new_payload,
+    );
     return { access_token: access_token };
   }
 }

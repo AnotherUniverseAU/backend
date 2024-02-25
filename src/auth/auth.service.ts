@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigFactory, ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { UserRepository } from 'src/repository/user.repository';
 
 @Injectable()
 export class AuthService {
@@ -10,6 +11,7 @@ export class AuthService {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
+    private userRepo: UserRepository,
   ) {
     this.accessSecret = this.configService.get<string>('ACCESS_TOKEN_SECRET');
     this.refreshSecret = this.configService.get<string>('REFRESH_TOKEN_SECRET');
@@ -53,5 +55,10 @@ export class AuthService {
     });
 
     return payload;
+  }
+  async getUser(userId: string) {
+    // get user from db
+    const user = await this.userRepo.findById(userId);
+    return user;
   }
 }

@@ -1,4 +1,10 @@
-import { IsDataURI, IsDate, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsDataURI,
+  IsDate,
+  IsNotEmpty,
+  IsString,
+} from 'class-validator';
 
 export class ImageReplyDTO {
   @IsNotEmpty()
@@ -8,10 +14,12 @@ export class ImageReplyDTO {
   @IsString()
   characterId: string;
 
-  @IsDate()
-  @IsNotEmpty()
-  targetTimeToSend: Date;
-
   @IsNotEmpty()
   fileFormat: string;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  isAfterCharacterReply: boolean;
+
+  isNew: boolean;
 }
