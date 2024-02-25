@@ -5,12 +5,17 @@ import { CharacterController } from './character.controller';
 import { CharacterService } from './character.service';
 import { CharacterRepository } from 'src/repository/character.repository';
 import { AuthModule } from 'src/auth/auth.module';
+import {
+  CharacterCreation,
+  CharacterCreationSchema,
+} from 'src/schemas/character-creation.schema';
 
 @Module({
   imports: [
     AuthModule,
     MongooseModule.forFeature([
       { name: Character.name, schema: CharacterSchema },
+      { name: CharacterCreation.name, schema: CharacterCreationSchema },
     ]),
   ],
   controllers: [CharacterController],
