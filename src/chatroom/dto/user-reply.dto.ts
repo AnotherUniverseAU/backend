@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDate,
   IsNotEmpty,
   IsNotEmptyObject,
@@ -11,16 +12,24 @@ export class UserReplyDTO {
   readonly characterId: string;
 
   @IsNotEmptyObject()
-  @IsString({ each: true })
-  readonly reply: string[];
+  @IsString()
+  readonly reply: string;
 
   @IsNotEmpty()
-  @IsDate()
-  readonly targetTimeToSend: Date;
+  @IsBoolean()
+  readonly isAfterCharacterReply: boolean;
 
-  constructor(characterId: string, reply: string[], targetTimeToSend: Date) {
+  readonly isNew?: boolean;
+
+  constructor(
+    characterId: string,
+    reply: string,
+    isAfterCharacterReply: boolean,
+    isNew?: boolean,
+  ) {
     this.characterId = characterId;
     this.reply = reply;
-    this.targetTimeToSend = targetTimeToSend;
+    this.isAfterCharacterReply = isAfterCharacterReply;
+    this.isNew = isNew;
   }
 }

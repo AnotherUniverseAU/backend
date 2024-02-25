@@ -10,21 +10,30 @@ import { Socket, Server } from 'socket.io';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ChatCache } from 'src/schemas/chat-schema/chat-cache.schema';
 import { ChatGatewayService } from './chat-gateway.service';
-import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 import { UserReplyDTO } from '../dto/user-reply.dto';
-import { plainToInstance } from 'class-transformer';
 import { ImageReplyDTO } from '../dto/image-reply.dto';
-
+import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
+import { Types } from 'mongoose';
 @WebSocketGateway({
   namespace: 'socket/chat',
   cors: true,
 })
 export class ChatGateway implements OnGatewayConnection {
-  constructor(private chatGatewayService: ChatGatewayService) {}
+  private chatDataMap = new Map<string, ChatCache>();
+  constructor(private chatGatewayService: ChatGatewayService) {
+    this.chatDataMap.set('65c0b542c9a646697bb644aa', {
+      chatLog: {
+        characterId: new Types.ObjectId('65c0b542c9a646697bb644aa'),
+        content: ['hey', 'whatup'],
+        reply: [],
+        imgUrl: ['test'],
+        timeToSend: new Date('2024-02-20T10:54:00.000Z'),
+      },
+    });
+  }
 
   private clientConnectionCheck = new Map<string, NodeJS.Timeout>();
   private clientSocketMap = new Map<string, string>();
-  private chatDataMap = new Map<string, ChatCache>();
 
   @WebSocketServer()
   server: Server;
@@ -158,9 +167,12 @@ export class ChatGateway implements OnGatewayConnection {
   ) {
     const userId = client.data.userId as string;
     const chatData = this.chatDataMap.get(payload.characterId);
-    const content = chatData ? chatData.chatLog.content : [];
     //save to cache
-    await this.chatGatewayService.handleUserReply(userId, payload, content);
+    await this.chatGatewayService.handleUserReply(
+      userId,
+      payload,
+      chatData.chatLog,
+    );
 
     client.emit('message', 'reply saved');
   }
@@ -173,11 +185,10 @@ export class ChatGateway implements OnGatewayConnection {
     console.log('payload: ', payload);
     const userId = client.data.userId as string;
     const chatData = this.chatDataMap.get(payload.characterId);
-    const content = chatData ? chatData.chatLog.content : [];
     const result = await this.chatGatewayService.handleImageReply(
       userId,
       payload,
-      content,
+      chatData.chatLog,
     );
 
     if (result) {

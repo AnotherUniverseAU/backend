@@ -2,10 +2,8 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Injectable } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { UserReplyDTO as UserReplyDTO } from 'src/chatroom/dto/user-reply.dto';
-import {
-  UserReply,
-  UserReplyDocument,
-} from 'src/schemas/chat-schema/user-reply.schema';
+import { ChatLog } from 'src/schemas/chat-schema/chat-log.schema';
+import { UserReply } from 'src/schemas/chat-schema/user-reply.schema';
 
 @Injectable()
 export class UserReplyCacheRepository {
@@ -27,7 +25,10 @@ export class UserReplyCacheRepository {
       userReply.characterId,
     );
     const chatCache = JSON.parse(chatCacheJSON) as UserReply;
-    chatCache.reply = chatCache.reply.concat(userReply.reply);
+    chatCache.reply.push({
+      userReply: userReply.reply,
+      replyTime: new Date(),
+    });
     await this.redisClient.hset(
       replyKey,
       userReply.characterId,
@@ -38,20 +39,48 @@ export class UserReplyCacheRepository {
   async createUserReplyCache(
     userId: string,
     userReply: UserReplyDTO,
-    content: string[],
+    chatLog: ChatLog,
   ): Promise<void> {
     const replyKey = `reply:${userId}`;
+    //change the content to the character if the user reply is after the character reply
+    const targetContent = userReply.isAfterCharacterReply
+      ? chatLog.reply
+      : chatLog.content;
+
+    const reply = {
+      userId,
+      charcterId: userReply.characterId,
+      reply: [{ userReply: userReply.reply, replyTime: new Date() }],
+      targetContent: targetContent,
+      targetTimeToSend: chatLog.timeToSend,
+      isAfterCharacterReply: userReply.isAfterCharacterReply,
+    };
+
     await this.redisClient.hset(
       replyKey,
       userReply.characterId,
-      JSON.stringify({
-        userId,
-        charcterId: userReply.characterId,
-        reply: userReply.reply,
-        replyTime: new Date(),
-        targetContent: content,
-        targetTimeToSend: userReply.targetTimeToSend,
-      }),
+      JSON.stringify(reply),
+    );
+  }
+
+  async createHelloReplyCache(
+    userId: string,
+    userReply: UserReplyDTO,
+  ): Promise<void> {
+    const replyKey = `reply:${userId}`;
+    const reply = {
+      userId,
+      charcterId: userReply.characterId,
+      reply: [{ userReply: userReply.reply, replyTime: new Date() }],
+      targetContent: ['hello'],
+      targetTimeToSend: new Date(0),
+      isAfterCharacterReply: false,
+    };
+
+    await this.redisClient.hset(
+      replyKey,
+      userReply.characterId,
+      JSON.stringify(reply),
     );
   }
 }

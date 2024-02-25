@@ -6,21 +6,15 @@ import {
   UseGuards,
   Req,
   HttpCode,
-  Param,
-  Res,
 } from '@nestjs/common';
 import { UserDocument } from 'src/schemas/user.schema';
 import { UserService } from './user.service';
 import { Request } from 'express';
-import { AuthService } from 'src/auth/auth.service';
 import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
 
 @Controller('user')
 export class UserController {
-  constructor(
-    private userService: UserService,
-    private authService: AuthService,
-  ) {}
+  constructor(private userService: UserService) {}
   @UseGuards(CommonJwtGuard)
   @Get('info')
   getUserInfo(@Req() req: Request) {
