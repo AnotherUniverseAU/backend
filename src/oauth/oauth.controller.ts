@@ -30,9 +30,8 @@ export class OauthController {
     //get corresponding oauth service with the mode
     this.oauthService = this.oauthServiceFactory.getOauthService(mode);
     const userInfo = await this.oauthService.getUserInfo(code);
-
     const user = await this.commonOauthService.findOrCreate(mode, userInfo);
-    console.log(user._id);
+    console.log('adsf', user._id);
     const loginCredential =
       await this.commonOauthService.getUserCredentials(user);
 
