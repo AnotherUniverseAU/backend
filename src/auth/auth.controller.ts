@@ -1,18 +1,11 @@
 import {
-  Body,
   Controller,
   Get,
   Headers,
   HttpCode,
-  Req,
   UnauthorizedException,
-  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CommonJwtGuard } from './common-jwt.guard';
-import { Request } from 'express';
-import { UserRepository } from 'src/repository/user.repository';
-
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}

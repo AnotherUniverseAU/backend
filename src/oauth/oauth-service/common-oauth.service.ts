@@ -23,8 +23,8 @@ export class CommonOauthService {
 
     if (!user) {
       console.log('user not found');
-      const user = await this.userRepository.createByOauth(mode, userInfo);
-      console.log('user created', user);
+      user = await this.userRepository.createByOauth(mode, userInfo);
+      console.log('user created');
     }
 
     return user;

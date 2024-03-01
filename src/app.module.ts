@@ -12,7 +12,8 @@ import { ChatRoomModule } from './chatroom/chatroom.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { RedisModule, RedisModuleOptions } from '@nestjs-modules/ioredis';
 import { SubscriptionModule } from './subscription/subscription.module';
-
+import { HttpModule } from '@nestjs/axios';
+import { FirebaseModule } from './firebase/firebase.module';
 @Module({
   imports: [
     AuthModule,
@@ -21,6 +22,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
     CharacterModule,
     ChatRoomModule,
     SubscriptionModule,
+    FirebaseModule,
     // AgendaModule,
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),

@@ -67,6 +67,6 @@ export class User {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index(
-  { 'oauthAccounts.provider': 1, 'oauthAccounts.providerId': 1 },
+  { 'oauthAccounts.provider': 1, 'oauthAccounts.id': 1 },
   { unique: true },
 );
