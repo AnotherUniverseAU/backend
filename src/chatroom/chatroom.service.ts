@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { CharacterChatRepository } from 'src/repository/chat-repository/character-chat.repository';
-import { UserDocument } from 'src/schemas/user.schema';
+import { User, UserDocument } from 'src/schemas/user.schema';
 import { ChatRecoverDTO } from './dto/chat-recover.dto';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
@@ -10,6 +10,8 @@ import { ChatCacheRepository } from 'src/repository/chat-repository/chat-cache.r
 import { ChatCache } from 'src/schemas/chat-schema/chat-cache.schema';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ChatRoomUtils } from './chatroom.utils';
+import { chat } from 'googleapis/build/src/apis/chat';
+import { throwError } from 'rxjs';
 @Injectable()
 export class ChatRoomService {
   constructor(
@@ -41,7 +43,6 @@ export class ChatRoomService {
     return todayCharacterChat;
   }
 
-  async moveOldChatsToArchive() {}
   //check every hour
   @Cron('0 * * * *')
   async checkChatTimeToSend() {
@@ -62,9 +63,28 @@ export class ChatRoomService {
       const currentTime = new Date().getTime();
 
       setTimeout(() => {
+        //this goes to both chat-gateway and firebase service
         this.eventEmitter.emit('broadcast', chatCache);
       }, timeTOsend - currentTime);
     });
+  }
+
+  async getCharacterChat(charcterId: string): Promise<CharacterChat> {
+    return null;
+  }
+
+  async handleReplyRequest(user: User, chatId: string) {
+    const chatCache = await this.getChatCache(chatId);
+    const chatLog = chatCache.chatLog;
+    if (!user.subscribedCharacters.includes(chatLog.characterId)) {
+      throw new HttpException('user not subscribed to character', 401);
+    }
+    return chatLog.reply;
+  }
+
+  async getChatCache(characterId: string): Promise<ChatCache> {
+    const chat = await this.chatCacheRepo.findById(characterId);
+    return chat;
   }
 
   async recoverChat(

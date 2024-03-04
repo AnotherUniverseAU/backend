@@ -1,3 +1,4 @@
+import { Genre } from 'src/global/enum/genre.enum';
 import { Character, CharacterDocument } from 'src/schemas/character.schema';
 
 export class CharacterDTO {
@@ -11,6 +12,7 @@ export class CharacterDTO {
   readonly coverImageUrl: string; //s3 이미지 링크
   readonly likes: number; //좋아요 수
   readonly profilePicUrl: string; //s3 이미지 링크
+  readonly genre: Genre; //장르
 
   constructor(character: Character) {
     this.id = character._id.toString();
@@ -25,13 +27,16 @@ export class CharacterDTO {
     this.coverImageUrl = character.coverImageUrl;
     this.likes = character.likes;
     this.profilePicUrl = character.profilePicUrl;
+    this.genre = character.genre;
   }
-  short() {
+
+  toShort() {
     return {
       id: this.id,
       creatorNickname: this.creatorNickname,
       name: this.name,
       title: this.title,
+      genre: this.genre,
       coverImageUrl: this.coverImageUrl,
     };
   }

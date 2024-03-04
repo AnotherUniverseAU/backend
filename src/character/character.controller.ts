@@ -20,6 +20,7 @@ import { CharacterDTO } from './dto/character.dto';
 import { Types } from 'mongoose';
 import { CharacterCreationDTO } from './dto/character-creation.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { Character } from 'src/schemas/character.schema';
 @Controller('character')
 export class CharacterController {
   constructor(private characterService: CharacterService) {}
@@ -34,7 +35,7 @@ export class CharacterController {
 
     if (characters) {
       const shortCharacterDTOs = characters.map((character) => {
-        return new CharacterDTO(character).short();
+        return new CharacterDTO(character).toShort();
       });
       return { characters: shortCharacterDTOs };
     } else {
@@ -43,12 +44,25 @@ export class CharacterController {
   }
 
   @UseGuards(CommonJwtGuard)
+  @Get('main-character')
+  @HttpCode(200)
+  async getListMain() {
+    const mainCharacter = await this.characterService.getMainCharacter();
+    const characterDTO = new CharacterDTO(mainCharacter);
+    return { mainCharacter: characterDTO.toShort() };
+  }
+
+  @UseGuards(CommonJwtGuard)
   @Get(':id')
   @HttpCode(200)
   async getCharcterInfo(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as UserDocument;
-
-    const character = await this.characterService.getCharacterInfo(id);
+    let character: Character;
+    try {
+      character = await this.characterService.getCharacterInfo(id);
+    } catch (err) {
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
     if (character) {
       const characterDTO = new CharacterDTO(character);
       return { isNew: user.isNew, character: characterDTO };
