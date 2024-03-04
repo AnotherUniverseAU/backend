@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Req,
   UnauthorizedException,
@@ -31,6 +33,18 @@ export class ChatRoomController {
     const chatDict = await this.chatRoomService.recoverChat(user, payload);
 
     return chatDict;
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @Get('character-reply/:chatId')
+  @HttpCode(200)
+  async getCharacterReply(
+    @Req() req: Request,
+    @Param('chatId') chatId: string,
+  ) {
+    const user = req.user as UserDocument;
+    const reply = await this.chatRoomService.handleReplyRequest(user, chatId);
+    return reply;
   }
 
   //creating character chat. This is only for admin. This creates only one instance.

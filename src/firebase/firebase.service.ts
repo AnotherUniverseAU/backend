@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
 import * as admin from 'firebase-admin';
 import { getMessaging } from 'firebase-admin/messaging';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { ChatCache } from 'src/schemas/chat-schema/chat-cache.schema';
 
 @Injectable()
 export class FirebaseService {
@@ -20,6 +22,14 @@ export class FirebaseService {
     });
     console.log('Firebase app initialized');
     this.messagingService = getMessaging(this.firebaseApp);
+  }
+
+  //this listens to event from chatroom service
+  @OnEvent('broadcast')
+  async handleBroadcastEvent(payload: ChatCache) {
+    const { characterId, content } = payload.chatLog;
+    console.log('broadcasting to: ', characterId);
+    await this.sendNotifications(characterId.toString(), content);
   }
 
   async sendNotifications(characterId: string, content: string[]) {

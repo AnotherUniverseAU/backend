@@ -28,7 +28,9 @@ export class ChatGatewayService {
     private userReplyRepo: UserReplyRepository,
     private configService: ConfigService,
   ) {
-    this.containerName = this.configService.get('AZURE_STORAGE_CONTAINER_NAME');
+    this.containerName = this.configService.get<string>(
+      'AZURE_STORAGE_CONTAINER_NAME',
+    );
     this.blobServiceClient = BlobServiceClient.fromConnectionString(
       this.configService.get<string>('AZURE_STORAGE_CONNECTION_STRING'),
     );

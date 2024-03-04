@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { ConfigFactory, ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { JsonWebTokenError, JwtService } from '@nestjs/jwt';
 import { UserRepository } from 'src/repository/user.repository';
 
 @Injectable()
@@ -20,6 +20,7 @@ export class AuthService {
 
   async signToken(mode: string, payload: any): Promise<string> {
     let token: string;
+
     if (mode == 'access') {
       token = await this.jwtService.signAsync(payload, {
         secret: this.accessSecret,
@@ -50,11 +51,17 @@ export class AuthService {
     else if (mode == 'refresh') secret = this.refreshSecret;
     else if (mode == 'signup') secret = this.SIGNUP_TOKEN_SECRET;
 
-    const payload = await this.jwtService.verifyAsync(token, {
-      secret: secret,
-    });
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: secret,
+      });
 
-    return payload;
+      return payload;
+    } catch (err) {
+      if (err instanceof JsonWebTokenError) {
+        throw new HttpException('invalid token', 401);
+      }
+    }
   }
   async getUser(userId: string) {
     // get user from db

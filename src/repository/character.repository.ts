@@ -22,6 +22,11 @@ export class CharacterRepository {
     return character;
   }
 
+  async findMainCharacter(): Promise<CharacterDocument> {
+    const mainCharacter = await this.characterModel.findOne({ isMain: true });
+    return mainCharacter;
+  }
+
   async create(characterData: any) {
     const newInstance = new this.characterModel(characterData);
     return await newInstance.save();

@@ -39,6 +39,11 @@ export class ChatCacheRepository {
     return result;
   }
 
+  async findById(id: string): Promise<ChatCache> {
+    const chatCache = await this.chatCacheModel.findById(id);
+    return chatCache;
+  }
+
   async findByHour(startOfHour: Date): Promise<ChatCache[]> {
     //start of hour + 1 hour
     const endOfHour = new Date(startOfHour.getTime() + 3600000);
