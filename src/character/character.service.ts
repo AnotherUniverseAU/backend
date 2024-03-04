@@ -22,6 +22,11 @@ export class CharacterService {
     return character;
   }
 
+  async getMainCharacter(): Promise<Character> {
+    const mainCharacter = await this.characterRepo.findMainCharacter();
+    return mainCharacter;
+  }
+
   async getCharacterHello(characterId: string): Promise<string[]> {
     const helloMessage = await this.characterRepo.getHelloMessage(characterId);
     return helloMessage;
