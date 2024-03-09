@@ -37,6 +37,7 @@ export class CharacterController {
       const shortCharacterDTOs = characters.map((character) => {
         return new CharacterDTO(character).toShort();
       });
+      console.log(shortCharacterDTOs);
       return { characters: shortCharacterDTOs };
     } else {
       return { characters: [] };
@@ -85,6 +86,27 @@ export class CharacterController {
     } else {
       throw new HttpException('no such character', HttpStatus.BAD_REQUEST);
     }
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @Post('hello/:id')
+  @HttpCode(HttpStatus.CREATED)
+  async setCharacterHello(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body('helloMessage') helloMessage: string[],
+    @Body('helloPicture') helloPicture: string[],
+  ) {
+    const user = req.user as UserDocument;
+    if (user.role != 'admin') {
+      throw new HttpException('unauthorized access', HttpStatus.UNAUTHORIZED);
+    }
+    const result = await this.characterService.setCharacterHello(
+      id,
+      helloMessage,
+      helloPicture,
+    );
+    return { message: 'hello message set', ...helloMessage, result };
   }
 
   @UseGuards(CommonJwtGuard)

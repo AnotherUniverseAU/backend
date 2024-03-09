@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Mode } from 'fs';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Character, CharacterDocument } from 'src/schemas/character.schema';
 import { User } from 'src/schemas/user.schema';
 
@@ -32,11 +32,11 @@ export class CharacterRepository {
     return await newInstance.save();
   }
 
-  async getHelloMessage(charcterId: string): Promise<string[]> {
-    const character = await this.characterModel.findById(charcterId, {
-      helloMessage: 1,
-      _id: 0,
-    });
-    return character.helloMessage;
+  async updateById(characterId: string, payload: any) {
+    const result = await this.characterModel.updateOne(
+      { _id: new Types.ObjectId(characterId) },
+      { $set: payload },
+    );
+    return result;
   }
 }

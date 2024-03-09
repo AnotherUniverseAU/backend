@@ -5,6 +5,7 @@ import { CharacterRepository } from 'src/repository/character.repository';
 import { CharacterCreationDTO } from './dto/character-creation.dto';
 import { CharacterCreationRepository } from 'src/repository/character-creation.repository';
 import { CharacterCreation } from 'src/schemas/character-creation.schema';
+import { CharacterDTO } from './dto/character.dto';
 @Injectable()
 export class CharacterService {
   constructor(
@@ -27,14 +28,26 @@ export class CharacterService {
     return mainCharacter;
   }
 
-  async getCharacterHello(characterId: string): Promise<string[]> {
-    const helloMessage = await this.characterRepo.getHelloMessage(characterId);
-    return helloMessage;
+  async getCharacterHello(characterId: string): Promise<Partial<CharacterDTO>> {
+    const character = await this.characterRepo.findById(characterId);
+    return new CharacterDTO(character).toHello();
   }
 
   async createCharacter(characterData: any): Promise<Character> {
     const character = await this.characterRepo.create(characterData);
     return character;
+  }
+
+  async setCharacterHello(
+    characterId: string,
+    helloMessage: string[],
+    helloPicture: string[],
+  ) {
+    const result = await this.characterRepo.updateById(characterId, {
+      helloMessage,
+      helloPicture,
+    });
+    return result;
   }
 
   async saveCharacterCreationRequest(
