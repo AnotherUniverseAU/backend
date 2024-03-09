@@ -3,10 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import * as admin from 'firebase-admin';
 import { getMessaging } from 'firebase-admin/messaging';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { ChatCache } from 'src/schemas/chat-schema/chat-cache.schema';
-
+import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 @Injectable()
 export class FirebaseService {
   private firebaseApp: any;
@@ -26,17 +23,19 @@ export class FirebaseService {
 
   //this listens to event from chatroom service
   @OnEvent('broadcast')
-  async handleBroadcastEvent(payload: ChatCache) {
-    const { characterId, content } = payload.chatLog;
+  async handleBroadcastEvent(payload: CharacterChat) {
+    const { _id, characterId, content } = payload;
     console.log('broadcasting to: ', characterId);
-    await this.sendNotifications(characterId.toString(), content);
+    await this.sendNotifications(payload);
   }
 
-  async sendNotifications(characterId: string, content: string[]) {
+  async sendNotifications(payload: CharacterChat) {
+    const { _id, characterId, content } = payload;
     const topic = characterId;
     const message = {
       topic,
       data: {
+        chatId: _id.toString(),
         content: JSON.stringify(content),
       },
     };

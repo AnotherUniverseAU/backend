@@ -4,7 +4,6 @@ import { Model, Types } from 'mongoose';
 import { ChatCreationDTO } from 'src/chatroom/dto/chat-creation.dto';
 import { ChatReplyDTO } from 'src/chatroom/dto/chat-reply.dto';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
-import { ChatLog } from 'src/schemas/chat-schema/chat-log.schema';
 @Injectable()
 export class CharacterChatRepository {
   constructor(
@@ -12,36 +11,51 @@ export class CharacterChatRepository {
     private characterChatModel: Model<CharacterChat>,
   ) {}
 
+  async findById(chatId: string): Promise<CharacterChat> {
+    const chat = await this.characterChatModel.findOne({
+      _id: new Types.ObjectId(chatId),
+    });
+    return chat;
+  }
+
   //if the character Chat exists it appends to that chatlog, if not it creates a new characterChat instances and appends to that chatlog
   //does not return the data, only updates the data
   async addCharacterChat(payload: ChatCreationDTO): Promise<CharacterChat> {
     const characterId = new Types.ObjectId(payload.characterId);
-    const newChatLog: ChatLog = {
+
+    const result = await this.characterChatModel.create({
+      _id: new Types.ObjectId(),
       characterId: characterId,
       content: payload.content,
       imgUrl: payload.imgUrl,
       timeToSend: payload.timeToSend,
-    };
-
-    const result = await this.characterChatModel.create({
-      chatLog: newChatLog,
     });
 
     return result;
   }
 
+  async findByHour(startOfHour: Date): Promise<CharacterChat[]> {
+    const endOfHour = new Date(startOfHour);
+    endOfHour.setHours(startOfHour.getHours() + 1);
+    const characterChats = await this.characterChatModel.find({
+      timeToSend: { $gte: startOfHour, $lte: endOfHour },
+    });
+
+    if (characterChats) return characterChats;
+    else return [];
+  }
+
   async addManyCharacterChats(
     payload: ChatCreationDTO[],
   ): Promise<CharacterChat[]> {
-    const characterChats = payload.map((chatLogDto) => {
+    const characterChats = payload.map((chatDto) => {
       return new this.characterChatModel({
-        chatLog: {
-          characterId: chatLogDto.characterId,
-          content: chatLogDto.content,
-          reply: [],
-          imgUrl: chatLogDto.imgUrl,
-          timeToSend: chatLogDto.timeToSend,
-        },
+        _id: new Types.ObjectId(),
+        characterId: chatDto.characterId,
+        content: chatDto.content,
+        reply: [],
+        imgUrl: chatDto.imgUrl,
+        timeToSend: chatDto.timeToSend,
       });
     });
 
@@ -54,10 +68,10 @@ export class CharacterChatRepository {
     const bulkOperations = payload.map((chatReplyDTO) => ({
       updateOne: {
         filter: {
-          'chatLog.characterId': chatReplyDTO.characterId,
-          'chatLog.timeToSend': chatReplyDTO.timeToSend,
+          characterId: chatReplyDTO.characterId,
+          timeToSend: chatReplyDTO.timeToSend,
         },
-        update: { $set: { 'chatLog.reply': chatReplyDTO.reply } },
+        update: { $set: { reply: chatReplyDTO.reply } },
       },
     }));
 
@@ -66,7 +80,7 @@ export class CharacterChatRepository {
   }
 
   //this is for recovery of chatlogs
-  async findByIdAndTime(
+  async findByCharacterIdAndTime(
     characterId: string,
     timestamp: Date,
   ): Promise<CharacterChat[]> {
@@ -80,8 +94,8 @@ export class CharacterChatRepository {
     console.log(timeCriteria);
 
     const characterChats = await this.characterChatModel.find({
-      'chatLog.characterId': new Types.ObjectId(characterId),
-      'chatLog.timeToSend': { $gt: timeCriteria, $lt: Date() },
+      characterId: new Types.ObjectId(characterId),
+      timeToSend: { $gt: timeCriteria, $lt: Date() },
     });
 
     if (characterChats) return characterChats;
@@ -95,7 +109,7 @@ export class CharacterChatRepository {
     end.setDate(start.getDate() + 1);
 
     const characterChats = await this.characterChatModel.find({
-      'chatLog.timeToSend': { $gt: start, $lt: end },
+      timeToSend: { $gt: start, $lt: end },
     });
 
     if (characterChats) return characterChats;

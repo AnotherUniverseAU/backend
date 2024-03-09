@@ -43,9 +43,16 @@ export class Character {
   @Prop({
     type: String,
     default:
-      'https://anotheruniverse.blob.core.windows.net/user-reply-image/65bcb2592c47f2f5ee0d464e/65c0b542c9a646697bb644aa/2024-02-20T13:15:00/Tue Feb 20 2024 14:10:23 GMT+0900 (Korean Standard Time).png',
+      'https://anotheruniverse.blob.core.windows.net/user-reply-image/springfield (2).png',
   })
   coverImageUrl: string;
+
+  @Prop({
+    type: String,
+    default:
+      'https://anotheruniverse.blob.core.windows.net/user-reply-image/18822cf2b4512c2ec (1).jpg',
+  })
+  mainImageUrl: string;
 
   @Prop({ type: Number, default: 0 })
   likes: number;
@@ -53,12 +60,14 @@ export class Character {
   @Prop({
     type: String,
     default:
-      'https://anotheruniverse.blob.core.windows.net/user-reply-image/65bcb2592c47f2f5ee0d464e/65c0b542c9a646697bb644aa/2024-02-20T13:15:00/Tue Feb 20 2024 14:10:23 GMT+0900 (Korean Standard Time).png',
+      'https://anotheruniverse.blob.core.windows.net/user-reply-image/18822cf2b4512c2ec (1).jpg',
   })
   profilePicUrl: string;
 
   @Prop([{ type: String, default: [] }])
   helloMessage: string[];
+  @Prop([{ type: String, default: [] }])
+  helloPicture: string[];
 
   @Prop({ type: Boolean, default: false })
   isMain: boolean;
