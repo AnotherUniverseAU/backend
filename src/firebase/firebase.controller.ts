@@ -10,7 +10,8 @@ export class FirebsaeController {
   async sendNotification() {
     const characterId = '123';
     const content = ['Hello', 'World'];
-    await this.firebaseService.sendNotifications(characterId, content);
+    const payload = { content, characterId, _id: '123' } as any;
+    await this.firebaseService.sendNotifications(payload);
     return { message: 'Notification sent' };
   }
 }

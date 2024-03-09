@@ -21,7 +21,7 @@ import { UserDocument } from 'src/schemas/user.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-@Controller('chat-config')
+@Controller('chatroom')
 export class ChatRoomController {
   constructor(private chatRoomService: ChatRoomService) {}
 
@@ -36,6 +36,22 @@ export class ChatRoomController {
   }
 
   @UseGuards(CommonJwtGuard)
+  @Get('character-chat/:chatId')
+  @HttpCode(200)
+  async getCharacterChat(@Req() req: Request, @Param('chatId') chatId: string) {
+    const user = req.user as UserDocument;
+    console.log(chatId);
+    const characterChat = await this.chatRoomService.getCharacterChat(chatId);
+    console.log(characterChat);
+    if (!characterChat) throw new HttpException('chat not found', 404);
+
+    if (!user.subscribedCharacters.includes(characterChat.characterId))
+      throw new HttpException('user not subscribed to character', 401);
+
+    return characterChat;
+  }
+
+  @UseGuards(CommonJwtGuard)
   @Get('character-reply/:chatId')
   @HttpCode(200)
   async getCharacterReply(
@@ -43,8 +59,12 @@ export class ChatRoomController {
     @Param('chatId') chatId: string,
   ) {
     const user = req.user as UserDocument;
-    const reply = await this.chatRoomService.handleReplyRequest(user, chatId);
-    return reply;
+    const characterChat = await this.chatRoomService.handleReplyRequest(chatId);
+
+    if (!user.subscribedCharacters.includes(characterChat.characterId))
+      throw new HttpException('user not subscribed to character', 401);
+    const reply = characterChat.reply;
+    return { characterId: characterChat.characterId.toString(), reply };
   }
 
   //creating character chat. This is only for admin. This creates only one instance.
@@ -111,33 +131,33 @@ export class ChatRoomController {
     return { result, errorLines, chatHeaders };
   }
 
-  //this is for forcing server to refresh the chat cache for sending chats
-  //this should only be used for debugging purpose
-  @UseGuards(CommonJwtGuard)
-  @Post('force-refresh')
-  @HttpCode(200)
-  async forceRefreshChatCaching(@Req() req: Request) {
-    const user = req.user as UserDocument;
-    if (user.role !== 'admin') {
-      throw new UnauthorizedException('Unauthorizzed access');
-    }
+  // //this is for forcing server to refresh the chat cache for sending chats
+  // //this should only be used for debugging purpose
+  // @UseGuards(CommonJwtGuard)
+  // @Post('force-refresh')
+  // @HttpCode(200)
+  // async forceRefreshChatCaching(@Req() req: Request) {
+  //   const user = req.user as UserDocument;
+  //   if (user.role !== 'admin') {
+  //     throw new UnauthorizedException('Unauthorizzed access');
+  //   }
 
-    const todayChatLogs =
-      await this.chatRoomService.flushAndRetreieveChatLogToCache();
-    return todayChatLogs;
-  }
+  //   const todayChatLogs =
+  //     await this.chatRoomService.flushAndRetreieveChatLogToCache();
+  //   return todayChatLogs;
+  // }
   //this is for forcing server to check whether there are chats to send
   //this should only be used for debugging purpose
-  @UseGuards(CommonJwtGuard)
-  @Post('force-time-check')
-  @HttpCode(200)
-  async forceTimeCheck(@Req() req: Request) {
-    const user = req.user as UserDocument;
-    if (user.role !== 'admin') {
-      throw new UnauthorizedException('Unauthorizzed access');
-    }
+  // @UseGuards(CommonJwtGuard)
+  // @Post('force-time-check')
+  // @HttpCode(200)
+  // async forceTimeCheck(@Req() req: Request) {
+  //   const user = req.user as UserDocument;
+  //   if (user.role !== 'admin') {
+  //     throw new UnauthorizedException('Unauthorizzed access');
+  //   }
 
-    const hourChatLogs = await this.chatRoomService.checkChatTimeToSend();
-    return hourChatLogs;
-  }
+  //   const hourChatLogs = await this.chatRoomService.checkChatTimeToSend();
+  //   return hourChatLogs;
+  // }
 }

@@ -1,90 +1,57 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
-import { CharacterChatRepository } from 'src/repository/chat-repository/character-chat.repository';
+import { CharacterChatRepository } from 'src/repository/character-chat.repository';
 import { User, UserDocument } from 'src/schemas/user.schema';
 import { ChatRecoverDTO } from './dto/chat-recover.dto';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
 import { Cron } from '@nestjs/schedule';
-import { ChatCacheRepository } from 'src/repository/chat-repository/chat-cache.repository';
-import { ChatCache } from 'src/schemas/chat-schema/chat-cache.schema';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ChatRoomUtils } from './chatroom.utils';
-import { chat } from 'googleapis/build/src/apis/chat';
-import { throwError } from 'rxjs';
+import { Character } from 'src/schemas/character.schema';
 @Injectable()
 export class ChatRoomService {
   constructor(
     private characterChatRepo: CharacterChatRepository,
-    private chatCacheRepo: ChatCacheRepository,
     private eventEmitter: EventEmitter2,
     private chatRoomUtils: ChatRoomUtils,
-  ) {
-    this.flushAndRetreieveChatLogToCache();
-    this.checkChatTimeToSend();
-  }
-  //this is ran at 15:00 everyday because of utc
-  @Cron('0 15 * * *')
-  async flushAndRetreieveChatLogToCache() {
-    const start = new Date();
-    console.log('begin refreshing cache for: ', start);
-    await this.chatCacheRepo.refreshCache();
-
-    console.log('refresh complete');
-    const todayCharacterChat = await this.characterChatRepo.findByDay(start);
-
-    const result = await this.chatCacheRepo.pushChatLogs(todayCharacterChat);
-
-    console.log(
-      "pushing today's chat log complete with: ",
-      todayCharacterChat,
-      result,
-    );
-    return todayCharacterChat;
-  }
+  ) {}
 
   //check every hour
   @Cron('0 * * * *')
   async checkChatTimeToSend() {
     const startOfHour = new Date();
     console.log('finding chat to send at time: ', startOfHour);
-    const hourChatLogs = await this.chatCacheRepo.findByHour(startOfHour);
+    const hourCharacterChats =
+      await this.characterChatRepo.findByHour(startOfHour);
 
-    if (hourChatLogs) {
-      this.scheduleSend(hourChatLogs);
+    if (hourCharacterChats) {
+      this.scheduleSend(hourCharacterChats);
     }
-    console.log('sending chats in an hour: ', hourChatLogs);
-    return hourChatLogs;
+    console.log('sending chats in an hour: ', hourCharacterChats);
+    return hourCharacterChats;
   }
 
-  private scheduleSend(hourChatLogs: ChatCache[]) {
-    hourChatLogs.map((chatCache) => {
-      const timeTOsend = chatCache.chatLog.timeToSend.getTime();
+  private scheduleSend(hourChatLogs: CharacterChat[]) {
+    hourChatLogs.map((characterChat) => {
+      const timeTOsend = characterChat.timeToSend.getTime();
       const currentTime = new Date().getTime();
 
       setTimeout(() => {
         //this goes to both chat-gateway and firebase service
-        this.eventEmitter.emit('broadcast', chatCache);
+        this.eventEmitter.emit('broadcast', characterChat);
       }, timeTOsend - currentTime);
     });
   }
 
-  async getCharacterChat(charcterId: string): Promise<CharacterChat> {
-    return null;
+  async getCharacterChat(chatId: string): Promise<CharacterChat> {
+    const chatCache = await this.characterChatRepo.findById(chatId);
+    return chatCache;
   }
 
-  async handleReplyRequest(user: User, chatId: string) {
-    const chatCache = await this.getChatCache(chatId);
-    const chatLog = chatCache.chatLog;
-    if (!user.subscribedCharacters.includes(chatLog.characterId)) {
-      throw new HttpException('user not subscribed to character', 401);
-    }
-    return chatLog.reply;
-  }
-
-  async getChatCache(characterId: string): Promise<ChatCache> {
-    const chat = await this.chatCacheRepo.findById(characterId);
-    return chat;
+  async handleReplyRequest(chatId: string) {
+    const characterChat = await this.getCharacterChat(chatId);
+    return characterChat;
   }
 
   async recoverChat(
@@ -123,7 +90,7 @@ export class ChatRoomService {
 
     const result =
       await this.characterChatRepo.addManyCharacterChats(chatCreationDTOs);
-    const chatHeaders = result.map((chat) => chat.chatLog.content[0]);
+    const chatHeaders = result.map((chat) => chat.content[0]);
     return { chatHeaders, errorLines };
   }
 
@@ -168,10 +135,11 @@ export class ChatRoomService {
 
     await Promise.all(
       validatedCharacterIds.map(async (characterId) => {
-        const characterChat = await this.characterChatRepo.findByIdAndTime(
-          characterId,
-          timestamp,
-        );
+        const characterChat =
+          await this.characterChatRepo.findByCharacterIdAndTime(
+            characterId,
+            timestamp,
+          );
         dictionary[characterId] = characterChat;
       }),
     );
