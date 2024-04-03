@@ -24,7 +24,7 @@ export class AuthService {
     if (mode == 'access') {
       token = await this.jwtService.signAsync(payload, {
         secret: this.accessSecret,
-        expiresIn: '1h',
+        expiresIn: '30d',
       });
     } else if (mode == 'refresh') {
       token = await this.jwtService.signAsync(payload, {
