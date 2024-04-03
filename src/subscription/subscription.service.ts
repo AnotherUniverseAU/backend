@@ -22,6 +22,17 @@ export class SubscriptionService {
       user._id.toString(),
       characterId,
     );
+
+    const oldSubscription =
+      await this.subsriptionRepo.findByUserIdAndCharacterId(
+        user._id,
+        characterId,
+      );
+    if (oldSubscription) {
+      console.log(oldSubscription, ' already subscribed');
+      throw new HttpException('already subscribed', HttpStatus.BAD_REQUEST);
+    }
+
     const subscription = await this.subsriptionRepo.create(subscriptionDTO);
 
     console.log(
@@ -40,28 +51,27 @@ export class SubscriptionService {
     return subscription;
   }
 
-  async requestUnsubscription(
-    user: User,
-    subscriptionId: string,
-    endReason: string,
-  ) {
-    console.log(user, subscriptionId, endReason);
-    const subscription = await this.subsriptionRepo.patch(subscriptionId, {
-      endReason: endReason,
-    });
+  async requestUnsubscription(user: User, characterId: string) {
+    const subscription = await this.subsriptionRepo.findByUserIdAndCharacterId(
+      user._id,
+      characterId,
+    );
+    console.log(subscription);
+
     if (!subscription) {
-      throw new HttpException('subscription not found', HttpStatus.NOT_FOUND);
+      throw new HttpException('no subscription found', HttpStatus.BAD_REQUEST);
     }
 
     const payload = new SubscriptionEventDTO(
       user._id.toString(),
       subscription.characterId.toString(),
-      subscriptionId,
+      subscription._id.toString(),
     );
     console.log(
       'emitting unsubscription event from subscription for ',
       payload,
     );
     this.eventEmitter.emit('unsubscribe-user', payload);
+    await subscription.deleteOne();
   }
 }

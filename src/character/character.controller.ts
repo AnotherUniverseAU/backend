@@ -21,6 +21,8 @@ import { Types } from 'mongoose';
 import { CharacterCreationDTO } from './dto/character-creation.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Character } from 'src/schemas/character.schema';
+import nicknameModifier from '../global/nickname-modifier';
+
 @Controller('character')
 export class CharacterController {
   constructor(private characterService: CharacterService) {}
@@ -54,6 +56,20 @@ export class CharacterController {
   }
 
   @UseGuards(CommonJwtGuard)
+  @Get('pic-name')
+  @HttpCode(200)
+  async getCharacterPictureAndName(@Req() req: Request) {
+    const user = req.user as UserDocument;
+
+    const subscribedCharacterIds = user.subscribedCharacters;
+    const nameAndPics = await this.characterService.getCharacterPictureAndName(
+      subscribedCharacterIds,
+    );
+
+    return nameAndPics;
+  }
+
+  @UseGuards(CommonJwtGuard)
   @Get(':id')
   @HttpCode(200)
   async getCharcterInfo(@Req() req: Request, @Param('id') id: string) {
@@ -81,8 +97,25 @@ export class CharacterController {
       throw new HttpException('user not subscribed to character', 400);
     }
     const helloMessage = await this.characterService.getCharacterHello(id);
+
+    const chatRoomData = user.chatRoomDatas.get(id);
+    chatRoomData.lastChat = helloMessage[helloMessage.helloMessage.length - 1];
+    chatRoomData.unreadCounts = helloMessage.helloMessage.length;
+    user.chatRoomDatas.set(id, chatRoomData);
+    await user.save();
+
+    const nickname = chatRoomData.nickname
+      ? chatRoomData.nickname
+      : user.nickname;
+    const userSpecificHello = helloMessage.helloMessage.map((chat) => {
+      return nicknameModifier(nickname, chat);
+    });
+
     if (helloMessage) {
-      return { helloMessage: helloMessage };
+      return {
+        characterId: helloMessage.characterId,
+        helloMessage: userSpecificHello,
+      };
     } else {
       throw new HttpException('no such character', HttpStatus.BAD_REQUEST);
     }
@@ -95,7 +128,6 @@ export class CharacterController {
     @Req() req: Request,
     @Param('id') id: string,
     @Body('helloMessage') helloMessage: string[],
-    @Body('helloPicture') helloPicture: string[],
   ) {
     const user = req.user as UserDocument;
     if (user.role != 'admin') {
@@ -104,7 +136,6 @@ export class CharacterController {
     const result = await this.characterService.setCharacterHello(
       id,
       helloMessage,
-      helloPicture,
     );
     return { message: 'hello message set', ...helloMessage, result };
   }

@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Subscription } from 'src/schemas/subscription.schema';
-import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
+import {
+  Subscription,
+  SubscriptionDocument,
+} from 'src/schemas/subscription.schema';
 import { SubscriptionDTO } from 'src/subscription/dto/subscription.dto';
 
 @Injectable()
@@ -20,6 +22,18 @@ export class SubscriptionRepository {
       startDate: new Date(),
     });
     return await subscription.save();
+  }
+
+  async findByUserIdAndCharacterId(
+    userId: Types.ObjectId,
+    characterId: string,
+  ): Promise<SubscriptionDocument> {
+    const subscription = await this.subscriptionModel.findOne({
+      userId: userId,
+      characterId: new Types.ObjectId(characterId),
+    });
+
+    return subscription;
   }
 
   async patch(

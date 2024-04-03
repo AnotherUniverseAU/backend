@@ -67,6 +67,21 @@ export class KakaoOauthService implements IOauth {
     return userInfo;
   }
 
+  async getUserInfoWithAccessToken(access_token: string): Promise<OauthDTO> {
+    const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
+    const header = {
+      Authorization: `Bearer ${access_token}`,
+      'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
+    };
+    const response = await firstValueFrom(
+      this.httpService.get(KAKAO_USER_URL, { headers: header }),
+    );
+
+    const userInfo = this.extractUserInfo(response.data);
+
+    return userInfo;
+  }
+
   extractUserInfo(data: any): OauthDTO {
     const { id, kakao_account } = data;
     const { profile, email, phone_number, birthyear, gender } = kakao_account;

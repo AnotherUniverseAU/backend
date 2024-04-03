@@ -9,6 +9,22 @@ import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 export class UserRepository {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
+  async findAll(): Promise<UserDocument[]> {
+    const users = await this.userModel.find();
+    return users;
+  }
+
+  async findBySubscribedCharacter(
+    characterId: Types.ObjectId,
+  ): Promise<Partial<UserDocument[]>> {
+    const users = await this.userModel
+      .find({
+        subscribedCharacters: { $in: [new Types.ObjectId(characterId)] },
+      })
+      .exec();
+    return users;
+  }
+
   async findByOauth(mode: string, id: string): Promise<UserDocument> {
     const user = await this.userModel.findOne({
       'oauthAccounts.provider': mode,
@@ -35,7 +51,7 @@ export class UserRepository {
     return user;
   }
 
-  async addSubscribedCharacter(payload: SubscriptionEventDTO) {
+  async addSubscription(payload: SubscriptionEventDTO) {
     const updatedUser = await this.userModel
       .findByIdAndUpdate(
         payload.userId,
@@ -43,6 +59,15 @@ export class UserRepository {
           $push: {
             subscribedCharacters: new Types.ObjectId(payload.characterId),
             subscriptionIds: new Types.ObjectId(payload.subscriptionId),
+          },
+          $set: {
+            [`chatRoomDatas.${payload.characterId}`]: {
+              startDate: new Date(),
+              lastAccess: new Date(),
+              characterId: new Types.ObjectId(payload.characterId),
+              isUserLast: false,
+              userReplied: false,
+            },
           },
         },
         { new: true },
@@ -63,6 +88,9 @@ export class UserRepository {
           $pull: {
             subscribedCharacters: new Types.ObjectId(payload.characterId),
             subscriptionIds: new Types.ObjectId(payload.subscriptionId),
+          },
+          $unset: {
+            [`chatRoomDatas.${payload.characterId}`]: '',
           },
         },
         { new: true }, // Return the updated document

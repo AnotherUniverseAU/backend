@@ -1,4 +1,13 @@
-import { Controller, Get, Param, Query, Res, UseFilters } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Res,
+  UseFilters,
+} from '@nestjs/common';
 import { IOauth } from './oauth-service/ioauth.interface';
 import { OauthServiceFactory } from './oauth-service/oauth-service.factory';
 import { HttpExceptionFilter } from 'src/filters/http-exception-filter.filter';
@@ -8,7 +17,6 @@ import { Response } from 'express';
 //redirect_uri=127.0.0.1:3000/oauth/kakao
 
 @Controller('oauth')
-// @UseFilters(new HttpExceptionFilter())
 export class OauthController {
   private oauthService: IOauth;
   constructor(
@@ -32,6 +40,21 @@ export class OauthController {
     const userInfo = await this.oauthService.getUserInfo(code);
     const user = await this.commonOauthService.findOrCreate(mode, userInfo);
     console.log('adsf', user._id);
+    const loginCredential =
+      await this.commonOauthService.getUserCredentials(user);
+
+    return response.status(200).json(loginCredential);
+  }
+
+  @Post(':mode')
+  async oauthLogin(
+    @Res() response: Response,
+    @Body('mode') mode: string,
+    @Body('access_token') access_token: string,
+  ) {
+    const userInfo =
+      await this.oauthService.getUserInfoWithAccessToken(access_token);
+    const user = await this.commonOauthService.findOrCreate(mode, userInfo);
     const loginCredential =
       await this.commonOauthService.getUserCredentials(user);
 

@@ -42,22 +42,19 @@ export class SubscriptionController {
   @HttpCode(200)
   async requestUnsubscription(
     @Req() req: Request,
-    @Body('subscriptionId') subscriptionId: string,
-    @Body('endReason') endReason: string,
+    @Body('characterId') characterId: string,
   ) {
     const user = req.user as UserDocument;
-    if (
-      !subscriptionId ||
-      !user.subscriptionIds.includes(new Types.ObjectId(subscriptionId))
-    ) {
-      throw new HttpException('no subscription Id', HttpStatus.BAD_REQUEST);
-    }
 
-    const subscription = await this.subscriptionService.requestUnsubscription(
-      user,
-      subscriptionId,
-      endReason,
-    );
-    return subscription;
+    // if (
+    //   !characterId ||
+    //   !user.subscribedCharacters.includes(new Types.ObjectId(characterId))
+    // ) {
+    //   throw new HttpException('no character Id', HttpStatus.BAD_REQUEST);
+    // }
+
+    await this.subscriptionService.requestUnsubscription(user, characterId);
+
+    return 'good';
   }
 }

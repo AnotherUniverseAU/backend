@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Req,
   UnauthorizedException,
   UploadedFile,
@@ -16,55 +17,106 @@ import {
 import { ChatRoomService } from './chatroom.service';
 import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
 import { Request } from 'express';
-import { ChatRecoverDTO } from './dto/chat-recover.dto';
-import { UserDocument } from 'src/schemas/user.schema';
+import { User, UserDocument } from 'src/schemas/user.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Types } from 'mongoose';
+import { UserReplyDTO } from './dto/user-reply.dto';
+import { LatestAccessDTO as LastAccessDTO } from 'src/global/dto/last-access.dto';
+import { ChangeLastAccessInterceptor as LastAccessInterceptor } from './interceptor/change-last-access.interceptor';
+import nicknameModifier from '../global/nickname-modifier';
 
 @Controller('chatroom')
 export class ChatRoomController {
   constructor(private chatRoomService: ChatRoomService) {}
 
   @UseGuards(CommonJwtGuard)
-  @Post('recover')
+  @Get()
   @HttpCode(200)
-  async recoverChat(@Req() req: Request, @Body() payload: ChatRecoverDTO) {
+  async getAllChatRooms(@Req() req: Request) {
     const user = req.user as UserDocument;
-    const chatDict = await this.chatRoomService.recoverChat(user, payload);
-
-    return chatDict;
+    const chatRoomDatas = user.chatRoomDatas;
+    const lastAccessDTOs = Array.from(user.chatRoomDatas.keys()).map(
+      (characterId) => {
+        const chatRoomData = chatRoomDatas.get(characterId);
+        return new LastAccessDTO(chatRoomData);
+      },
+    );
+    return { chatRoomDatas: lastAccessDTOs };
   }
 
   @UseGuards(CommonJwtGuard)
-  @Get('character-chat/:chatId')
+  @UseInterceptors(LastAccessInterceptor)
+  @Get('chat-history/:characterId/:timestamp')
   @HttpCode(200)
-  async getCharacterChat(@Req() req: Request, @Param('chatId') chatId: string) {
+  async getChatHistory(
+    @Req() req: Request,
+    @Param('characterId') characterId: string,
+    @Param('timestamp') timestamp: string,
+    @Query('offset') offset: number,
+  ) {
     const user = req.user as UserDocument;
-    console.log(chatId);
-    const characterChat = await this.chatRoomService.getCharacterChat(chatId);
-    console.log(characterChat);
-    if (!characterChat) throw new HttpException('chat not found', 404);
 
-    if (!user.subscribedCharacters.includes(characterChat.characterId))
-      throw new HttpException('user not subscribed to character', 401);
+    if (!offset) offset = 0;
 
-    return characterChat;
+    const date = new Date(timestamp);
+
+    if (isNaN(date.getTime()) || (date > new Date() && user.role != 'admin'))
+      throw new HttpException('invalid date', 400);
+
+    const characterChats = await this.chatRoomService.getCharacterChatByDay(
+      characterId,
+      date,
+      offset,
+    );
+    var nickname = user.chatRoomDatas.get(characterId).nickname;
+    if (!nickname) nickname = user.nickname;
+
+    characterChats.forEach((chat) => {
+      chat.content = chat.content.map((chat) => {
+        return nicknameModifier(nickname, chat);
+      });
+      chat.reply = chat.reply.map((chat) => {
+        return nicknameModifier(nickname, chat);
+      });
+    });
+
+    const userReplies = await this.chatRoomService.getUserReplyByDay(
+      user._id,
+      date,
+      offset,
+    );
+
+    return { characterChats, userReplies };
   }
 
   @UseGuards(CommonJwtGuard)
-  @Get('character-reply/:chatId')
+  // @UseInterceptors(LastAccessInterceptor)
+  @Get('character-reply/:characterId/:chatId')
   @HttpCode(200)
   async getCharacterReply(
     @Req() req: Request,
+    @Param('characterId') characterId: string,
     @Param('chatId') chatId: string,
   ) {
     const user = req.user as UserDocument;
-    const characterChat = await this.chatRoomService.handleReplyRequest(chatId);
+    const chatRoomData = user.chatRoomDatas.get(characterId);
+    const nickname = chatRoomData.nickname
+      ? chatRoomData.nickname
+      : user.nickname;
 
-    if (!user.subscribedCharacters.includes(characterChat.characterId))
-      throw new HttpException('user not subscribed to character', 401);
-    const reply = characterChat.reply;
-    return { characterId: characterChat.characterId.toString(), reply };
+    const userSpecificChat = await this.chatRoomService.handleReplyRequest(
+      nickname,
+      chatId,
+    );
+
+    chatRoomData.lastAccess = new Date();
+    chatRoomData.lastChat = userSpecificChat[userSpecificChat.length - 1];
+    chatRoomData.unreadCounts = userSpecificChat.length;
+    user.chatRoomDatas.set(characterId, chatRoomData);
+    await user.save();
+
+    return { characterId, reply: userSpecificChat };
   }
 
   //creating character chat. This is only for admin. This creates only one instance.
@@ -91,6 +143,7 @@ export class ChatRoomController {
     @Req() req: Request,
     @UploadedFile() file: Express.Multer.File,
     @Body('characterId') characterId: string,
+    @Body('characterName') characterName: string,
   ) {
     const user = req.user as UserDocument;
     if (user.role != 'admin')
@@ -102,7 +155,11 @@ export class ChatRoomController {
       );
     }
     const { errorLines, chatHeaders } =
-      await this.chatRoomService.createMultipleChat(characterId, file);
+      await this.chatRoomService.createMultipleChat(
+        characterId,
+        file,
+        characterName,
+      );
 
     return { errorLines, chatHeaders };
   }
@@ -131,6 +188,68 @@ export class ChatRoomController {
     return { result, errorLines, chatHeaders };
   }
 
+  @UseGuards(CommonJwtGuard)
+  @Post('set-nickname/:characterId')
+  @HttpCode(201)
+  async setNickname(
+    @Req() req: Request,
+    @Param('characterId') characterId: string,
+    @Body('nickname') nickname: string,
+  ) {
+    const user = req.user as UserDocument;
+    const chatRoomData = user.chatRoomDatas.get(characterId);
+    chatRoomData.nickname = nickname;
+    user.chatRoomDatas.set(characterId, chatRoomData);
+    await user.save();
+    return { nickname };
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @UseInterceptors(LastAccessInterceptor)
+  @Post('user-reply/:characterId')
+  @HttpCode(201)
+  async addUserReply(
+    @Req() req: Request,
+    @Param('characterId') characterId: string,
+    @Body() userReplyDTO: UserReplyDTO,
+  ) {
+    const user = req.user as UserDocument;
+
+    if (
+      !user.subscribedCharacters.includes(
+        new Types.ObjectId(userReplyDTO.characterId),
+      )
+    ) {
+      throw new HttpException('user not subscribed to character', 400);
+    }
+    await this.chatRoomService.addUserReply(user._id, userReplyDTO);
+    return { msg: 'reply added' };
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @Post('image-reply/:characterId')
+  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(LastAccessInterceptor)
+  @HttpCode(201)
+  async addImageReply(
+    @Req() req: Request,
+    @Param('characterId') characterId: string,
+    image: Express.Multer.File,
+  ) {
+    const user = req.user as UserDocument;
+    if (!user.subscribedCharacters.includes(new Types.ObjectId(characterId))) {
+      throw new HttpException('user not subscribed to character', 400);
+    }
+
+    const imageUrl = await this.chatRoomService.addImageReply(
+      user._id,
+      image,
+      characterId,
+    );
+
+    return { msg: 'image reply added', imageUrl };
+  }
+
   // //this is for forcing server to refresh the chat cache for sending chats
   // //this should only be used for debugging purpose
   // @UseGuards(CommonJwtGuard)
@@ -146,18 +265,18 @@ export class ChatRoomController {
   //     await this.chatRoomService.flushAndRetreieveChatLogToCache();
   //   return todayChatLogs;
   // }
-  //this is for forcing server to check whether there are chats to send
-  //this should only be used for debugging purpose
-  // @UseGuards(CommonJwtGuard)
-  // @Post('force-time-check')
-  // @HttpCode(200)
-  // async forceTimeCheck(@Req() req: Request) {
-  //   const user = req.user as UserDocument;
-  //   if (user.role !== 'admin') {
-  //     throw new UnauthorizedException('Unauthorizzed access');
-  //   }
+  // this is for forcing server to check whether there are chats to send
+  // this should only be used for debugging purpose
+  @UseGuards(CommonJwtGuard)
+  @Post('force-time-check')
+  @HttpCode(200)
+  async forceTimeCheck(@Req() req: Request) {
+    const user = req.user as UserDocument;
+    if (user.role !== 'admin') {
+      throw new UnauthorizedException('Unauthorizzed access');
+    }
 
-  //   const hourChatLogs = await this.chatRoomService.checkChatTimeToSend();
-  //   return hourChatLogs;
-  // }
+    const hourChatLogs = await this.chatRoomService.checkChatTimeToSend();
+    return hourChatLogs;
+  }
 }

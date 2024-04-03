@@ -66,8 +66,6 @@ export class Character {
 
   @Prop([{ type: String, default: [] }])
   helloMessage: string[];
-  @Prop([{ type: String, default: [] }])
-  helloPicture: string[];
 
   @Prop({ type: Boolean, default: false })
   isMain: boolean;

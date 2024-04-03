@@ -38,16 +38,21 @@ export class CharacterService {
     return character;
   }
 
-  async setCharacterHello(
-    characterId: string,
-    helloMessage: string[],
-    helloPicture: string[],
-  ) {
+  async setCharacterHello(characterId: string, helloMessage: string[]) {
     const result = await this.characterRepo.updateById(characterId, {
       helloMessage,
-      helloPicture,
     });
     return result;
+  }
+
+  async getCharacterPictureAndName(
+    ids: Types.ObjectId[],
+  ): Promise<Partial<CharacterDTO>[]> {
+    const characters = await this.characterRepo.findByIds(ids);
+    const nameAndPic = characters.map((character) =>
+      new CharacterDTO(character).toNameAndPic(),
+    );
+    return nameAndPic;
   }
 
   async saveCharacterCreationRequest(

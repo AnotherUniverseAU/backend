@@ -1,21 +1,38 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { WsException } from '@nestjs/websockets';
 import { CharacterChatRepository } from 'src/repository/character-chat.repository';
-import { User, UserDocument } from 'src/schemas/user.schema';
-import { ChatRecoverDTO } from './dto/chat-recover.dto';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
 import { Cron } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ChatRoomUtils } from './chatroom.utils';
-import { Character } from 'src/schemas/character.schema';
+import { UserReplyRepository } from 'src/repository/user-reply-repository/user-reply.repository';
+import { UserReplyDTO } from './dto/user-reply.dto';
+import { BlobServiceClient } from '@azure/storage-blob';
+import { ConfigService } from '@nestjs/config';
+import { Types } from 'mongoose';
+import { UserReply } from 'src/schemas/chat-schema/user-reply.schema';
+import nicknameModifier from '../global/nickname-modifier';
+import { chat } from 'googleapis/build/src/apis/chat';
+
 @Injectable()
 export class ChatRoomService {
+  private containerName: string;
+  private blobServiceClient: BlobServiceClient;
+
   constructor(
+    private configService: ConfigService,
     private characterChatRepo: CharacterChatRepository,
     private eventEmitter: EventEmitter2,
     private chatRoomUtils: ChatRoomUtils,
-  ) {}
+    private userReplyRepository: UserReplyRepository,
+  ) {
+    this.containerName = this.configService.get<string>(
+      'AZURE_STORAGE_CONTAINER_NAME',
+    );
+    this.blobServiceClient = BlobServiceClient.fromConnectionString(
+      this.configService.get<string>('AZURE_STORAGE_CONNECTION_STRING'),
+    );
+  }
 
   //check every hour
   @Cron('0 * * * *')
@@ -34,41 +51,60 @@ export class ChatRoomService {
 
   private scheduleSend(hourChatLogs: CharacterChat[]) {
     hourChatLogs.map((characterChat) => {
-      const timeTOsend = characterChat.timeToSend.getTime();
+      const timeTosend = characterChat.timeToSend.getTime();
       const currentTime = new Date().getTime();
 
       setTimeout(() => {
-        //this goes to both chat-gateway and firebase service
+        //this goes to user domain currently
         this.eventEmitter.emit('broadcast', characterChat);
-      }, timeTOsend - currentTime);
+      }, timeTosend - currentTime);
     });
   }
 
-  async getCharacterChat(chatId: string): Promise<CharacterChat> {
+  async getCharacterChatById(chatId: string): Promise<CharacterChat> {
     const chatCache = await this.characterChatRepo.findById(chatId);
     return chatCache;
   }
 
-  async handleReplyRequest(chatId: string) {
-    const characterChat = await this.getCharacterChat(chatId);
-    return characterChat;
+  async findCharacterChatLeft(characterId: string) {}
+
+  async handleReplyRequest(
+    nickname: string,
+    chatId: string,
+  ): Promise<string[]> {
+    const characterChat = await this.getCharacterChatById(chatId);
+    const userSpecificChat = characterChat.reply.map((chat) => {
+      return nicknameModifier(nickname, chat);
+    }) as string[];
+    return userSpecificChat;
   }
 
-  async recoverChat(
-    user: UserDocument,
-    payload: ChatRecoverDTO,
-  ): Promise<Record<string, CharacterChat[]>> {
-    const { characterIds, timestamp } = payload;
-    console.log('requesting ', characterIds);
-    //check if requested characterIds are valid
-    const validatedCharacterIds = this.validateRecoverRequest(
-      user,
-      characterIds,
+  async getCharacterChatByDay(
+    characterId: string,
+    date: Date,
+    offset: number,
+  ): Promise<CharacterChat[]> {
+    const characterChats =
+      await this.characterChatRepo.findByCharacterIdAndDate(
+        characterId,
+        date,
+        offset,
+      );
+
+    return characterChats;
+  }
+
+  async getUserReplyByDay(
+    userId: Types.ObjectId,
+    date: Date,
+    offset: number,
+  ): Promise<UserReply[]> {
+    const userReplies = await this.userReplyRepository.findByIdandDate(
+      userId,
+      date,
+      offset,
     );
-    console.log('retrieving from :', validatedCharacterIds);
-    //retrieve chat logs based on characterId
-    const chatDict = await this.retrieveChat(validatedCharacterIds, timestamp);
-    return chatDict;
+    return userReplies;
   }
 
   async createChat(payload: ChatCreationDTO): Promise<CharacterChat> {
@@ -79,13 +115,18 @@ export class ChatRoomService {
   async createMultipleChat(
     characterId: string,
     file: Express.Multer.File,
+    characterName: string,
   ): Promise<{ chatHeaders: string[]; errorLines: string[] }> {
     const lines = await this.chatRoomUtils.changeBufferToReadableStrings(
       file.buffer,
     );
     //chatCreationDTOs is the parsed chat from the file
     const { chatCreationDTOs, errorLines } =
-      this.chatRoomUtils.parseTextToChatCreationDTO(characterId, lines);
+      this.chatRoomUtils.parseTextToChatCreationDTO(
+        characterId,
+        characterName,
+        lines,
+      );
     //add one instance to create the characterchat document incase this is the first time
 
     const result =
@@ -109,41 +150,87 @@ export class ChatRoomService {
     return { result, errorLines, chatHeaders };
   }
 
-  private validateRecoverRequest(user: UserDocument, characterIds: string[]) {
-    const subscribedCharacters = user.subscribedCharacters.map((id) =>
-      id.toString(),
+  async addUserReply(userId: Types.ObjectId, userReplyDTO: UserReplyDTO) {
+    const newUserReply = await this.userReplyRepository.create(
+      userId,
+      userReplyDTO,
     );
-    //check if user request is valid, not requesting any additional character
-    const validatedCharacters = subscribedCharacters.filter((characterId) => {
-      return characterIds.includes(characterId);
-    });
-
-    if (!validatedCharacters) {
-      throw new WsException(
-        'Invalid character request, you have no matching subscription',
-      );
-    }
-
-    return validatedCharacters;
   }
 
-  private async retrieveChat(
-    validatedCharacterIds: string[],
-    timestamp: Date,
-  ): Promise<Record<string, CharacterChat[]>> {
-    const dictionary: Record<string, CharacterChat[]> = {};
-
-    await Promise.all(
-      validatedCharacterIds.map(async (characterId) => {
-        const characterChat =
-          await this.characterChatRepo.findByCharacterIdAndTime(
-            characterId,
-            timestamp,
-          );
-        dictionary[characterId] = characterChat;
-      }),
+  async addImageReply(
+    userId: Types.ObjectId,
+    image: Express.Multer.File,
+    characterId: string,
+  ): Promise<string> {
+    const fileBuffer = image.buffer;
+    const newFilename = this.getFileName(
+      userId.toString(),
+      image.originalname,
+      characterId,
     );
+    const imageBlob = await this.uploadImageToAzure(fileBuffer, newFilename);
 
-    return dictionary;
+    const userReplyDTO = new UserReplyDTO(characterId, imageBlob.fileUrl);
+    await this.addUserReply(userId, userReplyDTO);
+
+    return imageBlob.fileUrl;
   }
+
+  getFileName(userId: string, filename: string, characterId: string) {
+    //this one is for characterGroup save foramt
+    const newFilename =
+      `${userId}/${characterId}/${new Date().toUTCString}` +
+      '.' +
+      filename.split('.')[1];
+
+    return newFilename;
+  }
+
+  async uploadImageToAzure(fileBuffer: Buffer, fileName: string) {
+    const containerClient = this.blobServiceClient.getContainerClient(
+      this.containerName,
+    );
+    const blobClient = containerClient.getBlockBlobClient(fileName);
+    const result = await blobClient.upload(fileBuffer, fileBuffer.length);
+    return { fileUrl: blobClient.url, result };
+  }
+
+  // async findUnreadNumberAndLastestChat(
+  //   latestAccesses: LatestAccessDTO[],
+  // ): Promise<UnreadChatDTO[]> {
+  //   const userLastAccesses = [];
+  //   const characterLastAccesses = [];
+
+  //   await Promise.all(
+  //     latestAccesses.map(async (lastAccess) => {
+  //       if (lastAccess.isUserLast && !lastAccess.hasCharacterReply) {
+  //         userLastAccesses.push(lastAccess);
+  //       } else {
+  //         characterLastAccesses.push(lastAccess);
+  //       }
+  //     }),
+  //   );
+
+  //   var characterLastChat = [];
+
+  //   if (characterLastAccesses) {
+  //     characterLastChat =
+  //       await this.characterChatRepo.findUnreadNumberAndLastestChat(
+  //         characterLastAccesses,
+  //       );
+  //   }
+  //   var userLastChat = [];
+  //   if (userLastAccesses) {
+  //     userLastChat = userLastAccesses.map((lastAccess) => {
+  //       return new UnreadChatDTO(
+  //         lastAccess.characterId,
+  //         0,
+  //         lastAccess.userLastChat,
+  //       );
+  //     });
+  //   }
+
+  //   const result = characterLastAccesses.concat(userLastChat);
+  //   return result;
+  // }
 }

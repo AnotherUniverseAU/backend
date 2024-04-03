@@ -6,11 +6,13 @@ import {
   UseGuards,
   Req,
   HttpCode,
+  Param,
 } from '@nestjs/common';
 import { UserDocument } from 'src/schemas/user.schema';
 import { UserService } from './user.service';
 import { Request } from 'express';
 import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
+import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 
 @Controller('user')
 export class UserController {
@@ -43,5 +45,40 @@ export class UserController {
     user.nickname = nickname;
     await user.save();
     return this.userService.getUserInfo(user);
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @Post('fcm-token')
+  @HttpCode(200)
+  async setFcmToken(@Req() req: Request, @Body('fcmToken') fcmToken: string) {
+    const user = req.user as UserDocument;
+    user.fcmToken = fcmToken;
+    await user.save();
+    return fcmToken;
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @Post('delete-user')
+  @HttpCode(200)
+  async deleteUser(
+    @Req() req: Request,
+    @Body('cancelType') cancelType: number,
+    @Body('reason') reason: string,
+  ) {
+    const user = req.user as UserDocument;
+    await this.userService.deleteUser(user, cancelType, reason);
+    return { msg: 'deleted' };
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @Post('force-broadcast')
+  @HttpCode(200)
+  async forceBroadcastChat(@Req() req: Request, @Body('chat') chats: any) {
+    const user = req.user as UserDocument;
+    if (user.role != 'admin') return { msg: 'not admin' };
+
+    const chat = new CharacterChat(chats);
+    console.log('controller', chat);
+    this.userService.sendUserChatNotification(chat);
   }
 }

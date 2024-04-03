@@ -22,6 +22,13 @@ export class CharacterRepository {
     return character;
   }
 
+  async findByIds(ids: Types.ObjectId[]): Promise<CharacterDocument[]> {
+    const characters = await this.characterModel
+      .find({ _id: { $in: ids } })
+      .exec();
+    return characters;
+  }
+
   async findMainCharacter(): Promise<CharacterDocument> {
     const mainCharacter = await this.characterModel.findOne({ isMain: true });
     return mainCharacter;
