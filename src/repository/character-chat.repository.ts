@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { ChatCreationDTO } from 'src/chatroom/dto/chat-creation.dto';
 import { ChatReplyDTO } from 'src/chatroom/dto/chat-reply.dto';
+import { UnreadChatDTO } from 'src/chatroom/dto/unread-chat.dto';
+import { LatestAccessDTO } from 'src/global/dto/last-access.dto';
+import { getOneDayWindowPagination } from 'src/global/time.util';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 @Injectable()
 export class CharacterChatRepository {
@@ -52,6 +55,7 @@ export class CharacterChatRepository {
       return new this.characterChatModel({
         _id: new Types.ObjectId(),
         characterId: chatDto.characterId,
+        characterName: chatDto.characterName,
         content: chatDto.content,
         reply: [],
         imgUrl: chatDto.imgUrl,
@@ -79,40 +83,92 @@ export class CharacterChatRepository {
     return result;
   }
 
-  //this is for recovery of chatlogs
-  async findByCharacterIdAndTime(
+  async findByCharacterIdAndDate(
     characterId: string,
-    timestamp: Date,
+    date: Date,
+    offset: number,
   ): Promise<CharacterChat[]> {
-    // can only get data from three days ago.
-    const timeLimit = new Date();
-    timeLimit.setDate(timeLimit.getDate() - 3);
-
-    let timeCriteria: Date;
-    if (timeLimit > timestamp) timeCriteria = timeLimit;
-    else timeCriteria = timestamp;
-    console.log(timeCriteria);
+    const { startOfDay, endOfDay } = getOneDayWindowPagination(date, offset);
 
     const characterChats = await this.characterChatModel.find({
       characterId: new Types.ObjectId(characterId),
-      timeToSend: { $gt: timeCriteria, $lt: Date() },
+      timeToSend: { $gte: startOfDay, $lt: endOfDay },
     });
-
-    if (characterChats) return characterChats;
-    else return [];
+    return characterChats;
   }
 
-  //retreive all the chats from all characters scheduled in the same day
-  async findByDay(start: Date): Promise<CharacterChat[]> {
-    console.log('starting at ', start);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 1);
+  async findLastestChatByCharacterId(characterId: string | Types.ObjectId) {
+    const pipeline = [
+      {
+        $match: {
+          _id: new Types.ObjectId(characterId),
+        },
+      },
+      {
+        $sort: {
+          timeToSend: -1, // Sort by 'timeToSend' in descending order to get the latest first
+        },
+      },
+      {
+        $limit: 1, // Limit to only 1 document
+      },
+    ] as PipelineStage[];
 
-    const characterChats = await this.characterChatModel.find({
-      timeToSend: { $gt: start, $lt: end },
-    });
+    const latestChat = await this.characterChatModel.aggregate(pipeline).exec();
+  }
 
-    if (characterChats) return characterChats;
-    else return [];
+  async findUnreadNumberAndLastestChat(
+    lastestAccesses: LatestAccessDTO[],
+  ): Promise<UnreadChatDTO[]> {
+    const results = await Promise.all(
+      lastestAccesses.map(async ({ characterId, lastAccess }) => {
+        console.log('ddddd', characterId);
+
+        const pipeline = [
+          {
+            $match: {
+              characterId: new Types.ObjectId(characterId),
+            },
+          },
+          {
+            $sort: { timeToSend: -1 },
+          },
+          {
+            $unwind: '$content', // Unwind the content array
+          },
+          {
+            $group: {
+              _id: '$characterId', // Group by 'characterId'
+              // Conditionally count 'content' elements based on 'timeToSend'
+              unreadCount: {
+                $sum: {
+                  $cond: {
+                    if: { $gte: ['$timeToSend', new Date(lastAccess)] }, // Condition
+                    then: 1, // Count if 'timeToSend' is greater than or equal to 'lastAccess'
+                    else: 0, // Do not count otherwise
+                  },
+                },
+              },
+              latestChat: { $first: '$$ROOT' }, // Get the latest chat document
+            },
+          },
+        ] as PipelineStage[];
+
+        const result = await this.characterChatModel
+          .aggregate(pipeline)
+          .exec()[0];
+
+        // The aggregation will return an array, so we take the first element
+        const unreadChatDTO = new UnreadChatDTO(
+          result.characterId,
+          result.unreadCount,
+          result.latestChat,
+        );
+
+        return unreadChatDTO;
+      }),
+    );
+
+    return results;
   }
 }
