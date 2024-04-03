@@ -11,7 +11,6 @@ export class CharacterDTO {
   readonly hashtags: string[]; //해시태그들 [] @@해시태그(#) 미포함
   readonly mainImageUrl: string; //s3 이미지 링크
   readonly helloMessage: string[];
-  readonly helloPicture: string[];
   readonly coverImageUrl: string; //s3 이미지 링크
   readonly profilePicUrl: string; //s3 이미지 링크
   readonly genre: Genre; //장르
@@ -31,7 +30,6 @@ export class CharacterDTO {
     this.profilePicUrl = character.profilePicUrl;
     this.genre = character.genre;
     this.helloMessage = character.helloMessage;
-    this.helloPicture = character.helloPicture;
     this.isMain = character.isMain;
     this.coverImageUrl = character.coverImageUrl;
     this.mainImageUrl = character.mainImageUrl;
@@ -54,7 +52,31 @@ export class CharacterDTO {
     return {
       characterId: this.characterId,
       helloMessage: this.helloMessage,
-      helloPicture: this.helloPicture,
+    };
+  }
+
+  toFull() {
+    return {
+      characterId: this.characterId,
+      creatorNickname: this.creatorNickname,
+      creatorWords: this.creatorWords,
+      contributroNicknames: this.contributroNicknames,
+      name: this.name,
+      title: this.title,
+      hashtags: this.hashtags,
+      mainImageUrl: this.mainImageUrl,
+      coverImageUrl: this.coverImageUrl,
+      profilePicUrl: this.profilePicUrl,
+      genre: this.genre,
+      isMain: this.isMain,
+    };
+  }
+
+  toNameAndPic() {
+    return {
+      characterId: this.characterId,
+      name: this.name,
+      profilePicUrl: this.profilePicUrl,
     };
   }
 }
