@@ -1,7 +1,28 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, ObjectId, SchemaTypes, Types } from 'mongoose';
 
-export type UserDocument = HydratedDocument<User>;
+@Schema()
+export class ChatRoomData {
+  @Prop({ type: Types.ObjectId, required: true, ref: 'Character' })
+  characterId: Types.ObjectId;
+
+  @Prop({ type: String })
+  nickname: string;
+
+  @Prop({ type: Date, required: true, default: Date.now })
+  startDate: Date;
+
+  @Prop({ type: Date, required: true, default: Date.now })
+  lastAccess: Date;
+
+  @Prop({ type: String })
+  lastChat: string;
+
+  @Prop({ type: Number, default: 0 })
+  unreadCounts: number;
+}
+
+export const ChatRoomDataSchema = SchemaFactory.createForClass(ChatRoomData);
 
 @Schema()
 export class User {
@@ -51,20 +72,26 @@ export class User {
   @Prop([
     {
       type: Types.ObjectId,
-      required: false,
-      unique: true,
+      required: true,
       ref: 'Character',
       default: [],
     },
   ])
   subscribedCharacters: Types.ObjectId[];
 
+  @Prop({ type: Map, of: ChatRoomDataSchema, default: () => ({}), _id: false })
+  chatRoomDatas: Map<string, ChatRoomData>;
+
   @Prop([
     { type: Types.ObjectId, required: false, ref: 'Subscription', default: [] },
   ])
   subscriptionIds: Types.ObjectId[];
+
+  @Prop({ type: String, required: false })
+  fcmToken: string;
 }
 
+export type UserDocument = HydratedDocument<User>;
 export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index(
   { 'oauthAccounts.provider': 1, 'oauthAccounts.id': 1 },
