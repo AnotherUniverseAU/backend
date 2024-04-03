@@ -17,6 +17,10 @@ import {
   UserReplySchema,
 } from 'src/schemas/chat-schema/user-reply.schema';
 import { UserReplyRepository } from 'src/repository/user-reply-repository/user-reply.repository';
+import {
+  CancelReason,
+  CancelReasonSchema,
+} from 'src/schemas/cancel-reason.schema';
 // import { UserReplyCacheRepository } from 'src/repository/user-reply-repository/reply-cache.repository';
 
 @Module({

@@ -6,6 +6,7 @@ import { ChatReplyDTO } from './dto/chat-reply.dto';
 
 export class ChatRoomUtils {
   setTimetoSend(timeToSend: Date, hour: string, minute: string) {
+    if (Number(hour) <= 5) timeToSend.setUTCDate(timeToSend.getUTCDate() + 1);
     timeToSend.setUTCHours(Number(hour));
     timeToSend.setUTCMinutes(Number(minute));
     timeToSend.setUTCHours(timeToSend.getUTCHours() - 9);
@@ -13,6 +14,7 @@ export class ChatRoomUtils {
 
   parseTextToChatCreationDTO(
     characterId: string,
+    characterName: string,
     lines: string[],
   ): { chatCreationDTOs: ChatCreationDTO[]; errorLines: string[] } {
     let date = null as Date;
@@ -32,6 +34,7 @@ export class ChatRoomUtils {
 
         const newChatDTO = new ChatCreationDTO(
           new Types.ObjectId(characterId),
+          characterName,
           chats,
           timeToSend,
         );
