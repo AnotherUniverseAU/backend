@@ -73,10 +73,15 @@ export class KakaoOauthService implements IOauth {
       Authorization: `Bearer ${access_token}`,
       'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
     };
-    const response = await firstValueFrom(
-      this.httpService.get(KAKAO_USER_URL, { headers: header }),
-    );
-
+    let response;
+    try {
+      response = await firstValueFrom(
+        this.httpService.get(KAKAO_USER_URL, { headers: header }),
+      );
+    } catch (err) {
+      console.log(err);
+      throw new Error(err);
+    }
     const userInfo = this.extractUserInfo(response.data);
 
     return userInfo;

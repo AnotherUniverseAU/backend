@@ -7,6 +7,9 @@ export class CommonJwtGuard implements CanActivate {
   constructor(private authService: AuthService) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
+    if (!request.headers.authorization) {
+      return false;
+    }
     const [authType, token] = request.headers.authorization.split(' ');
 
     if (authType !== 'Bearer' || !token) {

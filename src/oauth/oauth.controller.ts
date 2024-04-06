@@ -23,37 +23,41 @@ export class OauthController {
     private oauthServiceFactory: OauthServiceFactory,
     private commonOauthService: CommonOauthService,
   ) {}
-  @Get(':mode')
-  async oauth(
-    @Res() response: Response,
-    @Param('mode') mode: string,
-    @Query('code') code: string,
-    @Query('error') error?: string,
-  ) {
-    if (error) {
-      console.log('error at kakao level');
-      throw new Error(error);
-    }
+  // @Get(':mode')
+  // async oauth(
+  //   @Res() response: Response,
+  //   @Param('mode') mode: string,
+  //   @Query('code') code: string,
+  //   @Query('error') error?: string,
+  // ) {
+  //   if (error) {
+  //     console.log('error at kakao level');
+  //     throw new Error(error);
+  //   }
 
-    //get corresponding oauth service with the mode
-    this.oauthService = this.oauthServiceFactory.getOauthService(mode);
-    const userInfo = await this.oauthService.getUserInfo(code);
-    const user = await this.commonOauthService.findOrCreate(mode, userInfo);
-    console.log('adsf', user._id);
-    const loginCredential =
-      await this.commonOauthService.getUserCredentials(user);
+  //   console.log(code);
+  //   return response.status(200).json({ code });
 
-    return response.status(200).json(loginCredential);
-  }
+  //   //get corresponding oauth service with the mode
+  //   this.oauthService = this.oauthServiceFactory.getOauthService(mode);
+  //   const userInfo = await this.oauthService.getUserInfo(code);
+  //   const user = await this.commonOauthService.findOrCreate(mode, userInfo);
+  //   console.log('adsf', user._id);
+  //   const loginCredential =
+  //     await this.commonOauthService.getUserCredentials(user);
+
+  //   return response.status(200).json(loginCredential);
+  // }
 
   @Post(':mode')
   async oauthLogin(
     @Res() response: Response,
-    @Body('mode') mode: string,
-    @Body('access_token') access_token: string,
+    @Param('mode') mode: string,
+    @Body('code') code: string,
   ) {
-    const userInfo =
-      await this.oauthService.getUserInfoWithAccessToken(access_token);
+    this.oauthService = this.oauthServiceFactory.getOauthService(mode);
+
+    const userInfo = await this.oauthService.getUserInfo(code);
     const user = await this.commonOauthService.findOrCreate(mode, userInfo);
     const loginCredential =
       await this.commonOauthService.getUserCredentials(user);
