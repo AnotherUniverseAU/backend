@@ -70,7 +70,7 @@ export class CharacterController {
   }
 
   @UseGuards(CommonJwtGuard)
-  @Get(':id')
+  @Get('info/:id')
   @HttpCode(200)
   async getCharcterInfo(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as UserDocument;

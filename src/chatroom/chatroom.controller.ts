@@ -31,7 +31,7 @@ export class ChatRoomController {
   constructor(private chatRoomService: ChatRoomService) {}
 
   @UseGuards(CommonJwtGuard)
-  @Get()
+  @Get('')
   @HttpCode(200)
   async getAllChatRooms(@Req() req: Request) {
     const user = req.user as UserDocument;
