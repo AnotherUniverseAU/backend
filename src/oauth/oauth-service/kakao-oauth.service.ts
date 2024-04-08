@@ -16,7 +16,7 @@ export class KakaoOauthService implements IOauth {
     private configService: ConfigService,
   ) {
     this.KAKAO_CLIENT_ID = this.configService.get<string>('KAKAO_CLIENT_ID');
-    this.REDIRECT_URI = `${this.configService.get<string>('BACKEND_URL')}/oauth/kakao`;
+    this.REDIRECT_URI = 'http://127.0.0.1:3000/redirection';
     this.KAKAO_CLIENT_SECRET = this.configService.get<string>(
       'KAKAO_CLIENT_SECRET',
     );
