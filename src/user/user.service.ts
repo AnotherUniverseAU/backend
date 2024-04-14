@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UserDocument } from 'src/schemas/user.schema';
+import { User, UserDocument } from 'src/schemas/user.schema';
 import { UserRepository } from 'src/repository/user.repository';
 import { userDataDTO } from './dto/userData.dto';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -9,6 +9,8 @@ import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import nicknameModifier from '../global/nickname-modifier';
 import { CancelReasonRepository } from 'src/repository/cancel-reason.repository';
+import { ReplyEventDto } from 'src/global/dto/reply-event.dto';
+import { userInfo } from 'os';
 @Injectable()
 export class UserService {
   constructor(
@@ -38,13 +40,62 @@ export class UserService {
 
   @OnEvent('subscribe-user')
   async subscribeUser(payload: SubscriptionEventDTO) {
-    const user = await this.userRepo.addSubscription(payload);
+    var user: User;
+
+    user = await this.userRepo.findById(payload.userId);
+
+    if (
+      user.subscribedCharacters.includes(
+        new Types.ObjectId(payload.characterId),
+      )
+    ) {
+      console.log(
+        'user already subscribed to this character',
+        payload.userId,
+        payload.characterId,
+      );
+      return;
+    }
+    user = await this.userRepo.addSubscription(payload);
 
     console.log(
       'user domain, added character:',
       payload.characterId,
       'to: ',
       payload.userId,
+    );
+  }
+
+  @OnEvent('send-reply')
+  async sendUserReplyNotification(payload: ReplyEventDto) {
+    const { user, characterChat } = payload;
+
+    const reply = characterChat.reply;
+
+    const userSpecificChat = reply.map((chat) => {
+      return nicknameModifier(user.nickname, chat);
+    });
+    const characterName = characterChat.characterName;
+    const title = `${characterName}님이 새로운 채팅을 보냈어요`;
+    const body = userSpecificChat;
+    const characterId = characterChat.characterId.toString();
+    const fcmToken = user.fcmToken;
+    const isUserActive = true;
+
+    console.log(
+      'sending reply notification',
+      title,
+      body,
+      user._id,
+      characterId,
+    );
+
+    await this.firebaseService.sendUserNotification(
+      title,
+      body,
+      fcmToken,
+      characterId,
+      isUserActive,
     );
   }
 
@@ -70,16 +121,31 @@ export class UserService {
           : user.nickname;
 
         const userSpecificChat = characterChat.map((chat) => {
-          return nicknameModifier(nickname, chat);
+          const modifiedChat = nicknameModifier(nickname, chat);
+          if (modifiedChat.includes('https://')) return '사진';
+          else return modifiedChat;
         });
         const title = `${characterName}님이 새로운 채팅을 보냈어요`;
         const body = userSpecificChat;
         console.log(title, body);
-        await this.firebaseService.sendUserNotification(title, body, fcmToken);
+
+        var isUserActive: boolean;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (user.lastAccess < yesterday) isUserActive = false;
+        else isUserActive = true;
+        await this.firebaseService.sendUserNotification(
+          title,
+          body,
+          fcmToken,
+          chatRoomData.characterId.toString(),
+          isUserActive,
+        );
 
         //update chatRoom lastchat
         chatRoomData.lastChat = userSpecificChat[userSpecificChat.length - 1];
         chatRoomData.unreadCounts += userSpecificChat.length;
+        chatRoomData.lastChatDate = new Date();
         user.chatRoomDatas.set(characterId, chatRoomData);
         await user.save();
       }),

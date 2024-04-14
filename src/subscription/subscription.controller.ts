@@ -26,8 +26,6 @@ export class SubscriptionController {
     @Body('characterId') characterId: string,
   ) {
     const user = req.user as UserDocument;
-    if (user.subscribedCharacters.includes(new Types.ObjectId(characterId)))
-      throw new HttpException('already subscribed', HttpStatus.BAD_REQUEST);
 
     const subscription = await this.subscriptionService.requestSubscription(
       user,
@@ -45,14 +43,6 @@ export class SubscriptionController {
     @Body('characterId') characterId: string,
   ) {
     const user = req.user as UserDocument;
-
-    // if (
-    //   !characterId ||
-    //   !user.subscribedCharacters.includes(new Types.ObjectId(characterId))
-    // ) {
-    //   throw new HttpException('no character Id', HttpStatus.BAD_REQUEST);
-    // }
-
     await this.subscriptionService.requestUnsubscription(user, characterId);
 
     return 'good';

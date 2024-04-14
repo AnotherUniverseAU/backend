@@ -28,12 +28,9 @@ export class SubscriptionService {
         user._id,
         characterId,
       );
-    if (oldSubscription) {
-      console.log(oldSubscription, ' already subscribed');
-      throw new HttpException('already subscribed', HttpStatus.BAD_REQUEST);
-    }
-
-    const subscription = await this.subsriptionRepo.create(subscriptionDTO);
+    var subscription: Subscription;
+    if (oldSubscription) subscription = oldSubscription;
+    else subscription = await this.subsriptionRepo.create(subscriptionDTO);
 
     console.log(
       'emitting subscription event from subscription for ',
@@ -58,20 +55,23 @@ export class SubscriptionService {
     );
     console.log(subscription);
 
-    if (!subscription) {
-      throw new HttpException('no subscription found', HttpStatus.BAD_REQUEST);
-    }
+    var payload: SubscriptionEventDTO;
 
-    const payload = new SubscriptionEventDTO(
-      user._id.toString(),
-      subscription.characterId.toString(),
-      subscription._id.toString(),
-    );
+    if (!subscription) {
+      payload = new SubscriptionEventDTO(user._id.toString(), characterId, '');
+    } else {
+      payload = new SubscriptionEventDTO(
+        user._id.toString(),
+        characterId.toString(),
+        subscription._id.toString(),
+      );
+      await subscription.deleteOne();
+    }
     console.log(
       'emitting unsubscription event from subscription for ',
       payload,
     );
+    //this goes to both user and chatroom service
     this.eventEmitter.emit('unsubscribe-user', payload);
-    await subscription.deleteOne();
   }
 }
