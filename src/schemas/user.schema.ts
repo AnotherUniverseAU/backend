@@ -10,7 +10,7 @@ export class ChatRoomData {
   nickname: string;
 
   @Prop({ type: Date, required: true, default: Date.now })
-  startDate: Date;
+  createdDate: Date;
 
   @Prop({ type: Date, required: true, default: Date.now })
   lastAccess: Date;
@@ -20,6 +20,9 @@ export class ChatRoomData {
 
   @Prop({ type: Number, default: 0 })
   unreadCounts: number;
+
+  @Prop({ type: Date, default: 0 })
+  lastChatDate: Date;
 }
 
 export const ChatRoomDataSchema = SchemaFactory.createForClass(ChatRoomData);
@@ -89,6 +92,9 @@ export class User {
 
   @Prop({ type: String, required: false })
   fcmToken: string;
+
+  @Prop({ type: Date, default: Date.now })
+  lastAccess: Date;
 }
 
 export type UserDocument = HydratedDocument<User>;

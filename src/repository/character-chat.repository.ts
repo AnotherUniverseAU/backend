@@ -28,9 +28,9 @@ export class CharacterChatRepository {
 
     const result = await this.characterChatModel.create({
       _id: new Types.ObjectId(),
+      characterName: payload.characterName,
       characterId: characterId,
       content: payload.content,
-      imgUrl: payload.imgUrl,
       timeToSend: payload.timeToSend,
     });
 
@@ -58,7 +58,6 @@ export class CharacterChatRepository {
         characterName: chatDto.characterName,
         content: chatDto.content,
         reply: [],
-        imgUrl: chatDto.imgUrl,
         timeToSend: chatDto.timeToSend,
       });
     });

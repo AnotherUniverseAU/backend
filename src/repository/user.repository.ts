@@ -80,15 +80,26 @@ export class UserRepository {
     payload: SubscriptionEventDTO,
   ): Promise<User> {
     // Find the user and update in one step using MongoDB's $pull operator
+    console.log('unsubscription payload', payload);
+    const pullPayload = {};
+    if (payload.subscriptionId) {
+      pullPayload[`subscriptionIds`] = new Types.ObjectId(
+        payload.subscriptionId,
+      );
+    }
+    if (payload.characterId) {
+      pullPayload[`subscribedCharacters`] = new Types.ObjectId(
+        payload.characterId,
+      );
+    }
+
+    console.log('pullPayload', pullPayload);
 
     const updatedUser = await this.userModel
       .findByIdAndUpdate(
-        payload.userId,
+        new Types.ObjectId(payload.userId),
         {
-          $pull: {
-            subscribedCharacters: new Types.ObjectId(payload.characterId),
-            subscriptionIds: new Types.ObjectId(payload.subscriptionId),
-          },
+          $pull: pullPayload,
           $unset: {
             [`chatRoomDatas.${payload.characterId}`]: '',
           },

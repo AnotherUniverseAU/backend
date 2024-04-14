@@ -10,6 +10,9 @@ export class Notification {
 
   @Prop({ type: String, required: true })
   content: string;
+
+  @Prop({ type: Date, required: true, default: Date.now })
+  createdDate: Date;
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);

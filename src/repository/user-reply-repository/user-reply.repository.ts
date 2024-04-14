@@ -39,4 +39,11 @@ export class UserReplyRepository {
     });
     return userReply;
   }
+
+  async delete(userId: string, characterId: string) {
+    await this.userReplyModel.deleteMany({
+      userId: new Types.ObjectId(userId),
+      characterId: new Types.ObjectId(characterId),
+    });
+  }
 }

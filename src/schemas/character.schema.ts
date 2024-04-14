@@ -65,7 +65,10 @@ export class Character {
   profilePicUrl: string;
 
   @Prop([{ type: String, default: [] }])
-  helloMessage: string[];
+  helloMessageDay: string[];
+
+  @Prop([{ type: String, default: [] }])
+  helloMessageNight: string[];
 
   @Prop({ type: Boolean, default: false })
   isMain: boolean;
