@@ -56,20 +56,6 @@ export class CharacterController {
   }
 
   @UseGuards(CommonJwtGuard)
-  @Get('pic-name')
-  @HttpCode(200)
-  async getCharacterPictureAndName(@Req() req: Request) {
-    const user = req.user as UserDocument;
-
-    const subscribedCharacterIds = user.subscribedCharacters;
-    const nameAndPics = await this.characterService.getCharacterPictureAndName(
-      subscribedCharacterIds,
-    );
-
-    return nameAndPics;
-  }
-
-  @UseGuards(CommonJwtGuard)
   @Get('info/:id')
   @HttpCode(200)
   async getCharcterInfo(@Req() req: Request, @Param('id') id: string) {
@@ -89,6 +75,17 @@ export class CharacterController {
   }
 
   @UseGuards(CommonJwtGuard)
+  @Get('info/bulk')
+  @HttpCode(200)
+  async getSubscribedCharacterInfo(@Req() req: Request) {
+    const user = req.user as UserDocument;
+    const characterDtos =
+      await this.characterService.getSubscribedCharacterInfo(user);
+
+    return { characters: characterDtos };
+  }
+
+  @UseGuards(CommonJwtGuard)
   @Get('hello/:id')
   @HttpCode(200)
   async getCharacterHello(@Req() req: Request, @Param('id') id: string) {
@@ -96,24 +93,34 @@ export class CharacterController {
     if (!user.subscribedCharacters.includes(new Types.ObjectId(id))) {
       throw new HttpException('user not subscribed to character', 400);
     }
-    const helloMessage = await this.characterService.getCharacterHello(id);
-
+    const helloMessageSet = await this.characterService.getCharacterHello(id);
     const chatRoomData = user.chatRoomDatas.get(id);
-    chatRoomData.lastChat = helloMessage[helloMessage.helloMessage.length - 1];
-    chatRoomData.unreadCounts = helloMessage.helloMessage.length;
+
+    var helloMessage: string[];
+
+    const subscriptionStartTimeLocal = chatRoomData.createdDate.getTime() + 9;
+    if (subscriptionStartTimeLocal > 4 && subscriptionStartTimeLocal < 8)
+      helloMessage = helloMessageSet.helloMessageNight;
+    else helloMessage = helloMessageSet.helloMessageDay;
+
+    //update chatRoomData => 마지막 채팅, 안 읽은 채팅 수, 마지막 채팅 시간
+    chatRoomData.lastChat = helloMessage[helloMessage.length - 1];
+    chatRoomData.unreadCounts = helloMessage.length;
+    chatRoomData.lastChatDate = new Date();
+
     user.chatRoomDatas.set(id, chatRoomData);
     await user.save();
 
     const nickname = chatRoomData.nickname
       ? chatRoomData.nickname
       : user.nickname;
-    const userSpecificHello = helloMessage.helloMessage.map((chat) => {
+    const userSpecificHello = helloMessage.map((chat) => {
       return nicknameModifier(nickname, chat);
     });
 
-    if (helloMessage) {
+    if (userSpecificHello) {
       return {
-        characterId: helloMessage.characterId,
+        characterId: helloMessageSet.characterId,
         helloMessage: userSpecificHello,
       };
     } else {
@@ -128,6 +135,7 @@ export class CharacterController {
     @Req() req: Request,
     @Param('id') id: string,
     @Body('helloMessage') helloMessage: string[],
+    @Body('type') type: string,
   ) {
     const user = req.user as UserDocument;
     if (user.role != 'admin') {
@@ -136,6 +144,7 @@ export class CharacterController {
     const result = await this.characterService.setCharacterHello(
       id,
       helloMessage,
+      type,
     );
     return { message: 'hello message set', ...helloMessage, result };
   }
@@ -156,5 +165,21 @@ export class CharacterController {
     );
 
     return result;
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @Get('chatroom-info/:id')
+  @HttpCode(200)
+  async getChatRoomInfo(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as UserDocument;
+    const chatRoomData = user.chatRoomDatas.get(id);
+    if (chatRoomData) {
+      const character = await this.characterService.getCharacterInfo(id);
+      const { profilePicUrl, name } = character;
+
+      return { profilePicUrl, name, ...chatRoomData };
+    } else {
+      throw new HttpException('no such chatroom', HttpStatus.BAD_REQUEST);
+    }
   }
 }

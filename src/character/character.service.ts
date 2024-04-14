@@ -6,6 +6,7 @@ import { CharacterCreationDTO } from './dto/character-creation.dto';
 import { CharacterCreationRepository } from 'src/repository/character-creation.repository';
 import { CharacterCreation } from 'src/schemas/character-creation.schema';
 import { CharacterDTO } from './dto/character.dto';
+import { User } from 'src/schemas/user.schema';
 @Injectable()
 export class CharacterService {
   constructor(
@@ -38,10 +39,20 @@ export class CharacterService {
     return character;
   }
 
-  async setCharacterHello(characterId: string, helloMessage: string[]) {
-    const result = await this.characterRepo.updateById(characterId, {
-      helloMessage,
-    });
+  async setCharacterHello(
+    characterId: string,
+    helloMessage: string[],
+    type: string,
+  ) {
+    var result: any;
+    if (type === 'day')
+      result = await this.characterRepo.updateById(characterId, {
+        helloMessageDay: helloMessage,
+      });
+    else if (type === 'night')
+      result = await this.characterRepo.updateById(characterId, {
+        helloMessageNight: helloMessage,
+      });
     return result;
   }
 
@@ -65,5 +76,16 @@ export class CharacterService {
     );
 
     return characterCreation;
+  }
+
+  async getSubscribedCharacterInfo(
+    user: User,
+  ): Promise<Partial<CharacterDTO>[]> {
+    const subscribedCharacters = user.subscribedCharacters;
+    const characters = await this.characterRepo.findByIds(subscribedCharacters);
+    const characterDTOs = characters.map((character) =>
+      new CharacterDTO(character).toNameAndPic(),
+    );
+    return characterDTOs;
   }
 }
