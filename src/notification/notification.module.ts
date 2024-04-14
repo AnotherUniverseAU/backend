@@ -3,7 +3,10 @@ import { NotificationController } from './notification.controller';
 import { NotificationService } from './notification.service';
 import { AuthModule } from 'src/auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
-import { NotificationSchema } from 'src/schemas/notification.schema';
+import {
+  Notification,
+  NotificationSchema,
+} from 'src/schemas/notification.schema';
 
 @Module({
   controllers: [NotificationController],

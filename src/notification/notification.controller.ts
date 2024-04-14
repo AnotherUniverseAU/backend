@@ -32,6 +32,7 @@ export class NotificationController {
     @Req() req: Request,
     @Body('title') title: string,
     @Body('content') content: string,
+    @Body('createdDate') createdDate?: Date,
   ) {
     const user = req.user as UserDocument;
     if (user.role !== 'admin') throw new UnauthorizedException('not admin');
@@ -39,6 +40,7 @@ export class NotificationController {
     const notification = await this.notificationService.setNotification(
       title,
       content,
+      createdDate,
     );
 
     return notification;

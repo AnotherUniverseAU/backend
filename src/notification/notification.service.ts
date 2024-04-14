@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { Notification } from 'src/schemas/notification.schema';
 
 @Injectable()
 export class NotificationService {
@@ -14,10 +15,15 @@ export class NotificationService {
     return notifications;
   }
 
-  async setNotification(title: string, content: string): Promise<Notification> {
+  async setNotification(
+    title: string,
+    content: string,
+    createdDate: Date,
+  ): Promise<Notification> {
     const notification = await this.notificationModel.create({
       title,
       content,
+      createdDate,
     });
     return notification;
   }
