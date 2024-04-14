@@ -7,8 +7,6 @@ export class ChatCreationDTO {
 
   content: string[]; //the actual content
 
-  imgUrl: string[]; //urls of img
-
   timeToSend: Date; //time to send the chat
 
   constructor(
@@ -21,7 +19,5 @@ export class ChatCreationDTO {
     this.characterName = characterName;
     this.content = content;
     this.timeToSend = timeToSend;
-    //imgUrl is added afterwards
-    this.imgUrl = [];
   }
 }

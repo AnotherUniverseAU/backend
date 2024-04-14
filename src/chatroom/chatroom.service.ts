@@ -3,7 +3,7 @@ import { CharacterChatRepository } from 'src/repository/character-chat.repositor
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
 import { Cron } from '@nestjs/schedule';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { ChatRoomUtils } from './chatroom.utils';
 import { UserReplyRepository } from 'src/repository/user-reply-repository/user-reply.repository';
 import { UserReplyDTO } from './dto/user-reply.dto';
@@ -13,7 +13,9 @@ import { Types } from 'mongoose';
 import { UserReply } from 'src/schemas/chat-schema/user-reply.schema';
 import nicknameModifier from '../global/nickname-modifier';
 import { chat } from 'googleapis/build/src/apis/chat';
-
+import { User, UserDocument } from 'src/schemas/user.schema';
+import { ReplyEventDto } from 'src/global/dto/reply-event.dto';
+import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 @Injectable()
 export class ChatRoomService {
   private containerName: string;
@@ -66,7 +68,18 @@ export class ChatRoomService {
     return chatCache;
   }
 
-  async findCharacterChatLeft(characterId: string) {}
+  async bookCharacterReply(user: UserDocument, chatId: string) {
+    const characterChat = await this.getCharacterChatById(chatId);
+
+    const replyEventDto = new ReplyEventDto(user, characterChat);
+
+    setTimeout(
+      () => {
+        this.eventEmitter.emit('send-reply', replyEventDto);
+      },
+      5 * 60 * 1000,
+    );
+  }
 
   async handleReplyRequest(
     nickname: string,
@@ -193,6 +206,11 @@ export class ChatRoomService {
     const blobClient = containerClient.getBlockBlobClient(fileName);
     const result = await blobClient.upload(fileBuffer, fileBuffer.length);
     return { fileUrl: blobClient.url, result };
+  }
+
+  @OnEvent('unsubscribe-user')
+  async deleteUserReply(payload: SubscriptionEventDTO) {
+    await this.userReplyRepository.delete(payload.userId, payload.characterId);
   }
 
   // async findUnreadNumberAndLastestChat(

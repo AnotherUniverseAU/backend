@@ -21,6 +21,8 @@ export class ChangeLastAccessInterceptor implements NestInterceptor {
 
     const user = request.user as UserDocument;
 
+    user.lastAccess = new Date();
+
     if (
       characterId &&
       !user.subscribedCharacters.includes(new Types.ObjectId(characterId))
@@ -30,8 +32,11 @@ export class ChangeLastAccessInterceptor implements NestInterceptor {
     const chatRoomData = user.chatRoomDatas.get(characterId);
 
     if (method === 'POST') {
-      const userReply = request.body.userReply;
+      const userReply = request.body.userReply
+        ? request.body.userReply
+        : '사진';
       chatRoomData.lastChat = userReply;
+      chatRoomData.lastChatDate = new Date();
     }
     chatRoomData.unreadCounts = 0;
     chatRoomData.lastAccess = new Date();

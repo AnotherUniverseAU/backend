@@ -35,6 +35,7 @@ export class ChatRoomController {
   @HttpCode(200)
   async getAllChatRooms(@Req() req: Request) {
     const user = req.user as UserDocument;
+    user.lastAccess = new Date();
     const chatRoomDatas = user.chatRoomDatas;
     const lastAccessDTOs = Array.from(user.chatRoomDatas.keys()).map(
       (characterId) => {
@@ -56,6 +57,7 @@ export class ChatRoomController {
     @Query('offset') offset: number,
   ) {
     const user = req.user as UserDocument;
+    user.lastAccess = new Date();
 
     if (!offset) offset = 0;
 
@@ -69,7 +71,10 @@ export class ChatRoomController {
       date,
       offset,
     );
-    var nickname = user.chatRoomDatas.get(characterId).nickname;
+
+    const chatRoomData = user.chatRoomDatas.get(characterId);
+
+    var nickname = chatRoomData.nickname;
     if (!nickname) nickname = user.nickname;
 
     characterChats.forEach((chat) => {
@@ -86,6 +91,12 @@ export class ChatRoomController {
       date,
       offset,
     );
+
+    const currentDateOffset = new Date(timestamp);
+    currentDateOffset.setDate(currentDateOffset.getDate() + offset);
+
+    if (chatRoomData.createdDate <= currentDateOffset && user.role != 'admin')
+      return { characterChats: [], userReplies: [], isLast: true };
 
     return { characterChats, userReplies };
   }
@@ -113,6 +124,7 @@ export class ChatRoomController {
     chatRoomData.lastAccess = new Date();
     chatRoomData.lastChat = userSpecificChat[userSpecificChat.length - 1];
     chatRoomData.unreadCounts = userSpecificChat.length;
+    chatRoomData.lastChatDate = new Date();
     user.chatRoomDatas.set(characterId, chatRoomData);
     await user.save();
 
