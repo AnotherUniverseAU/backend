@@ -31,11 +31,37 @@ export class FirebaseService {
     await this.sendNotifications(payload);
   }
 
-  async sendUserNotification(title: string, body: string[], token: string) {
+  async sendUserNotification(
+    title: string,
+    body: string[],
+    token: string,
+    characterId: string,
+    isUserActive: boolean,
+  ) {
+    var route: any;
+    var notification: any;
+
+    if (isUserActive) {
+      route = `/chatroom/${characterId}`;
+      notification = { title, body };
+    } else {
+      route = '/chatlist';
+      notification = {
+        title: '오늘 최애가 보낸 메시지를 확인해 보세요 💌',
+        body: [''],
+      };
+    }
+
     const message = {
-      notification: {
-        title,
-        body,
+      notification,
+      data: {
+        route,
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          color: '#6E7AE8',
+        },
       },
       token,
     };
