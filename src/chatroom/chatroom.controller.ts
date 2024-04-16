@@ -217,6 +217,25 @@ export class ChatRoomController {
   }
 
   @UseGuards(CommonJwtGuard)
+  @Get('user-nickname/:characterId')
+  @HttpCode(200)
+  async getChatRoomNickname(
+    @Req() req: Request,
+    @Param('characterId') characterId: string,
+  ) {
+    const user = req.user as UserDocument;
+    const chatRoomData = user.chatRoomDatas.get(characterId);
+
+    const nickname = chatRoomData.nickname
+      ? chatRoomData.nickname
+      : user.nickname;
+    return {
+      nickname: nickname,
+      isChatRoomSpecific: !!chatRoomData.nickname,
+    };
+  }
+
+  @UseGuards(CommonJwtGuard)
   @UseInterceptors(LastAccessInterceptor)
   @Post('user-reply/:characterId')
   @HttpCode(201)

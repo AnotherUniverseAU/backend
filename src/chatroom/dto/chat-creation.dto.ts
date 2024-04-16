@@ -1,12 +1,20 @@
+import {
+  IsArray,
+  IsDate,
+  IsNotEmpty,
+  IsSemVer,
+  IsString,
+} from 'class-validator';
 import { Types } from 'mongoose';
 
 export class ChatCreationDTO {
-  characterId: Types.ObjectId; //id of the owner of
-
-  characterName: string; //name of the owner of the chat
-
+  @IsNotEmpty()
+  characterId: Types.ObjectId; //id of the character
+  @IsString()
+  characterName: string; //name of the characters of the chat
+  @IsArray()
   content: string[]; //the actual content
-
+  @IsDate()
   timeToSend: Date; //time to send the chat
 
   constructor(

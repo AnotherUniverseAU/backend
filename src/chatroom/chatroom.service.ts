@@ -121,6 +121,7 @@ export class ChatRoomService {
   }
 
   async createChat(payload: ChatCreationDTO): Promise<CharacterChat> {
+    console.log(payload);
     const result = await this.characterChatRepo.addCharacterChat(payload);
     return result;
   }

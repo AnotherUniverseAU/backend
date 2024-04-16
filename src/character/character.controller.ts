@@ -56,6 +56,17 @@ export class CharacterController {
   }
 
   @UseGuards(CommonJwtGuard)
+  @Get('info/bulk')
+  @HttpCode(200)
+  async getSubscribedCharacterInfo(@Req() req: Request) {
+    const user = req.user as UserDocument;
+    const characterDtos =
+      await this.characterService.getSubscribedCharacterInfo(user);
+
+    return { characters: characterDtos };
+  }
+
+  @UseGuards(CommonJwtGuard)
   @Get('info/:id')
   @HttpCode(200)
   async getCharcterInfo(@Req() req: Request, @Param('id') id: string) {
@@ -72,17 +83,6 @@ export class CharacterController {
     } else {
       throw new HttpException('no such character', HttpStatus.BAD_REQUEST);
     }
-  }
-
-  @UseGuards(CommonJwtGuard)
-  @Get('info/bulk')
-  @HttpCode(200)
-  async getSubscribedCharacterInfo(@Req() req: Request) {
-    const user = req.user as UserDocument;
-    const characterDtos =
-      await this.characterService.getSubscribedCharacterInfo(user);
-
-    return { characters: characterDtos };
   }
 
   @UseGuards(CommonJwtGuard)
