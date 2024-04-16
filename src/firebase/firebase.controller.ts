@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   HttpCode,
+  HttpException,
+  HttpStatus,
   Post,
   Req,
   UnauthorizedException,
@@ -23,13 +25,19 @@ export class FirebsaeController {
     @Req() req: Request,
     @Body('title') title: string,
     @Body('body') body: string[],
-    @Body('userId') userId: string,
     @Body('isUserActive') isUserActive: boolean,
   ) {
     const user = req.user as UserDocument;
     if (user.role !== 'admin') throw new UnauthorizedException('not admin');
 
     const fcmToken = user.fcmToken;
+
+    if (!user.subscribedCharacters.length || !fcmToken)
+      throw new HttpException(
+        'no subscribed characters or no fcmToken',
+        HttpStatus.BAD_REQUEST,
+      );
+
     const characterId = user.subscribedCharacters[0].toString();
 
     await this.firebaseService.sendUserNotification(
