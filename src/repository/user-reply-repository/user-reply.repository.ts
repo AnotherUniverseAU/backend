@@ -28,6 +28,7 @@ export class UserReplyRepository {
 
   async findByIdandDate(
     userId: Types.ObjectId,
+    characterId: Types.ObjectId,
     date: Date,
     offset: number,
   ): Promise<UserReply[]> {
@@ -35,6 +36,7 @@ export class UserReplyRepository {
 
     const userReply = await this.userReplyModel.find({
       userId: userId,
+      characterId: characterId,
       replyTime: { $gte: startOfDay, $lte: endOfDay },
     });
     return userReply;

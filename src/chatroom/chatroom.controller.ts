@@ -25,6 +25,7 @@ import { UserReplyDTO } from './dto/user-reply.dto';
 import { LatestAccessDTO as LastAccessDTO } from 'src/global/dto/last-access.dto';
 import { ChangeLastAccessInterceptor as LastAccessInterceptor } from './interceptor/change-last-access.interceptor';
 import nicknameModifier from '../global/nickname-modifier';
+import { winstonLogger } from 'src/common/logger/winston.util';
 
 @Controller('chatroom')
 export class ChatRoomController {
@@ -43,6 +44,11 @@ export class ChatRoomController {
         return new LastAccessDTO(chatRoomData);
       },
     );
+
+    winstonLogger.log('getting all chat rooms', {
+      user: user._id,
+      chatRoomDatas: lastAccessDTOs,
+    });
     return { chatRoomDatas: lastAccessDTOs };
   }
 
@@ -88,6 +94,7 @@ export class ChatRoomController {
 
     const userReplies = await this.chatRoomService.getUserReplyByDay(
       user._id,
+      characterId,
       date,
       offset,
     );

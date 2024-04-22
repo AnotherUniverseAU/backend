@@ -21,8 +21,6 @@ export class ChangeLastAccessInterceptor implements NestInterceptor {
 
     const user = request.user as UserDocument;
 
-    user.lastAccess = new Date();
-
     if (
       characterId &&
       !user.subscribedCharacters.includes(new Types.ObjectId(characterId))

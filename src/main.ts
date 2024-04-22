@@ -2,13 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SocketIoAdapter } from './adapters/socket-io.adapters';
 import { ValidationPipe } from '@nestjs/common';
+import { winstonLogger } from './common/logger/winston.util';
+import { LoggerMiddleware } from './common/logger/logger.middleware';
 declare const module: any;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug', 'verbose'], // More verbose logging
+    logger: winstonLogger, // More verbose logging
   });
-  app.useWebSocketAdapter(new SocketIoAdapter(app));
+  // app.useWebSocketAdapter(new SocketIoAdapter(app));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // Strips non-whitelisted properties

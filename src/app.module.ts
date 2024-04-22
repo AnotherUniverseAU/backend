@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { OauthModule } from './oauth/oauth.module';
@@ -14,6 +14,8 @@ import { RedisModule, RedisModuleOptions } from '@nestjs-modules/ioredis';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { NotificationModule } from './notification/notification.module';
+import { LoggerMiddleware } from './common/logger/logger.middleware';
+import { LoggerModule } from './common/logger/logger.module';
 @Module({
   imports: [
     AuthModule,
@@ -24,6 +26,7 @@ import { NotificationModule } from './notification/notification.module';
     ChatRoomModule,
     SubscriptionModule,
     FirebaseModule,
+    LoggerModule,
     // AgendaModule,
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
@@ -53,4 +56,8 @@ import { NotificationModule } from './notification/notification.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+  }
+}

@@ -109,11 +109,13 @@ export class ChatRoomService {
 
   async getUserReplyByDay(
     userId: Types.ObjectId,
+    characterId: string,
     date: Date,
     offset: number,
   ): Promise<UserReply[]> {
     const userReplies = await this.userReplyRepository.findByIdandDate(
       userId,
+      new Types.ObjectId(characterId),
       date,
       offset,
     );
