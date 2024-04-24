@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OnEvent } from '@nestjs/event-emitter';
-import { response } from 'express';
+// import { OnEvent } from '@nestjs/event-emitter';
+// import { response } from 'express';
 import * as admin from 'firebase-admin';
 import { getMessaging } from 'firebase-admin/messaging';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
@@ -38,42 +38,69 @@ export class FirebaseService {
     characterId: string,
     isUserActive: boolean,
   ) {
-    var route: any;
-    var notification: any;
+    let route: any;
+    let notification: any;
 
+    const sendMessage = async (message) => {
+      await this.messagingService
+        .send(message)
+        .then((response: any) => {
+          console.log('Successfully sent message:', response);
+        })
+        .catch((error: any) => {
+          console.log('Error sending message:', error);
+        });
+    };
+
+    // 액티브 유저라면
     if (isUserActive) {
       route = `/chatroom/${characterId}`;
-      notification = { title, body };
+
+      // body에 있는 string마다 한 번씩
+      body.forEach((element) => {
+        notification = { title, element };
+
+        const message = {
+          notification,
+          data: {
+            route,
+          },
+          android: {
+            priority: 'high',
+            notification: {
+              color: '#6E7AE8',
+            },
+          },
+          token,
+        };
+
+        // notice 보내기
+        sendMessage(message);
+      });
+      // 휴면 유저라면
     } else {
       route = '/chatlist';
       notification = {
         title: '오늘 최애가 보낸 메시지를 확인해 보세요 💌',
-        body: [''],
+        body: '',
       };
-    }
 
-    const message = {
-      notification,
-      data: {
-        route,
-      },
-      android: {
-        priority: 'high',
-        notification: {
-          color: '#6E7AE8',
+      const message = {
+        notification,
+        data: {
+          route,
         },
-      },
-      token,
-    };
+        android: {
+          priority: 'high',
+          notification: {
+            color: '#6E7AE8',
+          },
+        },
+        token,
+      };
 
-    await this.messagingService
-      .send(message)
-      .then((response: any) => {
-        console.log('Successfully sent message:', response);
-      })
-      .catch((error: any) => {
-        console.log('Error sending message:', error);
-      });
+      sendMessage(message);
+    }
   }
 
   async sendNotifications(payload: CharacterChat) {
