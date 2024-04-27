@@ -272,11 +272,15 @@ export class ChatRoomController {
   async addImageReply(
     @Req() req: Request,
     @Param('characterId') characterId: string,
-    image: Express.Multer.File,
+    @UploadedFile() image: Express.Multer.File,
   ) {
     const user = req.user as UserDocument;
     if (!user.subscribedCharacters.includes(new Types.ObjectId(characterId))) {
       throw new HttpException('user not subscribed to character', 400);
+    }
+    if (!image) {
+      winstonLogger.error('no image provided');
+      throw new HttpException('no image provided', 400);
     }
 
     const imageUrl = await this.chatRoomService.addImageReply(

@@ -195,7 +195,7 @@ export class ChatRoomService {
   getFileName(userId: string, filename: string, characterId: string) {
     //this one is for characterGroup save foramt
     const newFilename =
-      `${userId}/${characterId}/${new Date().toUTCString}` +
+      `${userId}/${characterId}/${new Date().toUTCString()}` +
       '.' +
       filename.split('.')[1];
 

@@ -22,6 +22,7 @@ import { CharacterCreationDTO } from './dto/character-creation.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Character } from 'src/schemas/character.schema';
 import nicknameModifier from '../global/nickname-modifier';
+import { winstonLogger } from 'src/common/logger/winston.util';
 
 @Controller('character')
 export class CharacterController {
@@ -93,6 +94,8 @@ export class CharacterController {
     if (!user.subscribedCharacters.includes(new Types.ObjectId(id))) {
       throw new HttpException('user not subscribed to character', 400);
     }
+    // TODO: 이거 서비스 로직으로 내려야함
+
     const helloMessageSet = await this.characterService.getCharacterHello(id);
     const chatRoomData = user.chatRoomDatas.get(id);
 
@@ -104,9 +107,17 @@ export class CharacterController {
     else helloMessage = helloMessageSet.helloMessageDay;
 
     //update chatRoomData => 마지막 채팅, 안 읽은 채팅 수, 마지막 채팅 시간
-    chatRoomData.lastChat = helloMessage[helloMessage.length - 1];
-    chatRoomData.unreadCounts = helloMessage.length;
-    chatRoomData.lastChatDate = new Date();
+
+    if (!chatRoomData.lastChatDate) {
+      chatRoomData.lastChatDate = new Date();
+      chatRoomData.unreadCounts = helloMessage.length;
+      chatRoomData.lastAccess = new Date();
+      chatRoomData.lastChat = helloMessage[helloMessage.length - 1].includes(
+        'https:',
+      )
+        ? '사진'
+        : helloMessage[helloMessage.length - 1];
+    }
 
     user.chatRoomDatas.set(id, chatRoomData);
     await user.save();
@@ -124,6 +135,10 @@ export class CharacterController {
         helloMessage: userSpecificHello,
       };
     } else {
+      winstonLogger.warn("no such character's hello message", {
+        user,
+        helloMessageSet,
+      });
       throw new HttpException('no such character', HttpStatus.BAD_REQUEST);
     }
   }

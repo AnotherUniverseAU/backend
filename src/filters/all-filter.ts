@@ -9,6 +9,6 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
     super.catch(exception, host);
 
     // Log the exception with debug level
-    this.logger.debug('An internal server error occurred', exception.stack);
+    this.logger.error('An internal server error occurred', exception.stack);
   }
 }

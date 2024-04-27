@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as util from 'util';
 import * as path from 'path';
 import { winstonLogger } from './winston.util';
+import winston from 'winston/lib/winston/config';
 
 @Injectable()
 export class LoggerSchedulerService {
@@ -13,7 +14,7 @@ export class LoggerSchedulerService {
   private containerName: string;
   constructor(private configService: ConfigService) {
     this.containerName = this.configService.get<string>(
-      'AZURE_STORAGE_CONTAINER_NAME',
+      'AZURE_STORAGE_LOG_CONTAINER_NAME',
     );
     this.blobServiceClient = BlobServiceClient.fromConnectionString(
       this.configService.get<string>('AZURE_STORAGE_CONNECTION_STRING'),
@@ -22,9 +23,10 @@ export class LoggerSchedulerService {
 
   @Cron('1 0 * * *')
   async uploadCache() {
+    winstonLogger.log('uploading cache logs to azure');
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayLog = `${yesterday.getFullYear()}-${yesterday.getMonth()}-${yesterday.getDate}`;
+    const pad = (num: number) => String(num).padStart(2, '0');
+    const yesterdayLog = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`;
     const yesterdayInfoLog = yesterdayLog + '.info.log';
     const yesterdayInfoLogDir = path.join(
       process.cwd(),
@@ -49,7 +51,10 @@ export class LoggerSchedulerService {
       `logs/${yesterdayInfoLog}`,
     );
 
-    await infoBlobClient.upload(InfoBuffer, InfoBuffer.length);
+    winstonLogger.log(this.containerName);
+
+    const result = await infoBlobClient.upload(InfoBuffer, InfoBuffer.length);
+    winstonLogger.log({ url: infoBlobClient.url });
 
     const warningBlobClient = containerClient.getBlockBlobClient(
       `logs/${yesterdayWarningLog}`,

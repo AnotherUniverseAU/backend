@@ -51,7 +51,7 @@ export class UserRepository {
     return user;
   }
 
-  async addSubscription(payload: SubscriptionEventDTO) {
+  async addSubscription(nickname: string, payload: SubscriptionEventDTO) {
     const updatedUser = await this.userModel
       .findByIdAndUpdate(
         payload.userId,
@@ -62,11 +62,8 @@ export class UserRepository {
           },
           $set: {
             [`chatRoomDatas.${payload.characterId}`]: {
-              startDate: new Date(),
-              lastAccess: new Date(),
               characterId: new Types.ObjectId(payload.characterId),
-              isUserLast: false,
-              userReplied: false,
+              nickname: nickname,
             },
           },
         },

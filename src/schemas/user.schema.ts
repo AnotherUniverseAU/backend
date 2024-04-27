@@ -12,7 +12,7 @@ export class ChatRoomData {
   @Prop({ type: Date, required: true, default: Date.now })
   createdDate: Date;
 
-  @Prop({ type: Date, required: true, default: Date.now })
+  @Prop({ type: Date })
   lastAccess: Date;
 
   @Prop({ type: String })
@@ -21,7 +21,7 @@ export class ChatRoomData {
   @Prop({ type: Number, default: 0 })
   unreadCounts: number;
 
-  @Prop({ type: Date, default: 0 })
+  @Prop({ type: Date })
   lastChatDate: Date;
 }
 

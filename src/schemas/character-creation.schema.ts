@@ -1,7 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { Genre } from 'src/global/enum/genre.enum';
-
 export type CharacterCreationDocument = HydratedDocument<CharacterCreation>;
 
 @Schema()
@@ -15,8 +13,11 @@ export class CharacterCreation {
   @Prop({ type: String, required: true })
   title: string;
 
-  @Prop({ type: String, required: true, enum: Object.values(Genre) })
-  genre: Genre;
+  @Prop({ type: String, required: true })
+  genre: string;
+
+  @Prop({ type: String, required: true })
+  gender: string;
 
   @Prop({ type: String, required: true })
   creatorWords: string;

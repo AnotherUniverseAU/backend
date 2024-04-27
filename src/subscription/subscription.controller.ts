@@ -12,7 +12,6 @@ import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
 import { SubscriptionService } from './subscription.service';
 import { UserDocument } from 'src/schemas/user.schema';
 import { Request } from 'express';
-import { Types } from 'mongoose';
 
 @Controller('subscription')
 export class SubscriptionController {

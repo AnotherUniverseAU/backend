@@ -1,4 +1,3 @@
-import { Genre } from 'src/global/enum/genre.enum';
 import { Character, CharacterDocument } from 'src/schemas/character.schema';
 
 export class CharacterDTO {
@@ -14,7 +13,7 @@ export class CharacterDTO {
   readonly helloMessageNight: string[];
   readonly coverImageUrl: string; //s3 이미지 링크
   readonly profilePicUrl: string; //s3 이미지 링크
-  readonly genre: Genre; //장르
+  readonly genre: string; //장르
 
   readonly isMain: boolean; //메인 캐릭터 여부
 

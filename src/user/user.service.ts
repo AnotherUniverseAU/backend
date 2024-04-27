@@ -56,7 +56,7 @@ export class UserService {
       );
       return;
     }
-    user = await this.userRepo.addSubscription(payload);
+    user = await this.userRepo.addSubscription(user.nickname, payload);
 
     console.log(
       'user domain, added character:',

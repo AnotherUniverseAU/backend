@@ -1,6 +1,4 @@
 import { IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { Gender } from 'src/global/enum/gender.enum';
-import { Genre } from 'src/global/enum/genre.enum';
 
 export class CharacterCreationDTO {
   @IsString()
@@ -9,15 +7,15 @@ export class CharacterCreationDTO {
   @IsString()
   @IsNotEmpty()
   readonly title: string;
-  @IsEnum(Genre)
+  @IsString()
   @IsNotEmpty()
-  readonly genre: Genre; //make it enum
+  readonly genre: string; //make it enum
   @IsString()
   @IsNotEmpty()
   readonly creatorWords: string;
-  @IsEnum(Gender)
+  @IsString()
   @IsNotEmpty()
-  readonly gender: Gender; //make it...enum?
+  readonly gender: string; //make it...enum?
   @IsString()
   @IsNotEmpty()
   readonly appearance: string;
