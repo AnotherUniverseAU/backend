@@ -40,6 +40,7 @@ export class ChangeLastAccessInterceptor implements NestInterceptor {
     chatRoomData.lastAccess = new Date();
 
     user.chatRoomDatas.set(characterId, chatRoomData);
+    user.lastAccess = chatRoomData.lastAccess;
     await user.save();
 
     return next.handle();

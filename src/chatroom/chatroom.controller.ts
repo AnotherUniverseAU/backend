@@ -80,7 +80,7 @@ export class ChatRoomController {
 
     const chatRoomData = user.chatRoomDatas.get(characterId);
 
-    var nickname = chatRoomData.nickname;
+    let nickname = chatRoomData.nickname;
     if (!nickname) nickname = user.nickname;
 
     characterChats.forEach((chat) => {
@@ -108,35 +108,35 @@ export class ChatRoomController {
     return { characterChats, userReplies };
   }
 
-  @UseGuards(CommonJwtGuard)
-  // @UseInterceptors(LastAccessInterceptor)
-  @Get('character-reply/:characterId/:chatId')
-  @HttpCode(200)
-  async getCharacterReply(
-    @Req() req: Request,
-    @Param('characterId') characterId: string,
-    @Param('chatId') chatId: string,
-  ) {
-    const user = req.user as UserDocument;
-    const chatRoomData = user.chatRoomDatas.get(characterId);
-    const nickname = chatRoomData.nickname
-      ? chatRoomData.nickname
-      : user.nickname;
+  // @UseGuards(CommonJwtGuard)
+  // // @UseInterceptors(LastAccessInterceptor)
+  // @Get('character-reply/:characterId/:chatId')
+  // @HttpCode(200)
+  // async getCharacterReply(
+  //   @Req() req: Request,
+  //   @Param('characterId') characterId: string,
+  //   @Param('chatId') chatId: string,
+  // ) {
+  //   const user = req.user as UserDocument;
+  //   const chatRoomData = user.chatRoomDatas.get(characterId);
+  //   const nickname = chatRoomData.nickname
+  //     ? chatRoomData.nickname
+  //     : user.nickname;
 
-    const userSpecificChat = await this.chatRoomService.handleReplyRequest(
-      nickname,
-      chatId,
-    );
+  //   const userSpecificChat = await this.chatRoomService.handleReplyRequest(
+  //     nickname,
+  //     chatId,
+  //   );
 
-    chatRoomData.lastAccess = new Date();
-    chatRoomData.lastChat = userSpecificChat[userSpecificChat.length - 1];
-    chatRoomData.unreadCounts = userSpecificChat.length;
-    chatRoomData.lastChatDate = new Date();
-    user.chatRoomDatas.set(characterId, chatRoomData);
-    await user.save();
+  //   await this.chatRoomService.bookCharacterReply(
+  //     user,
+  //     chatId,
+  //     characterId,
+  //     userSpecificChat,
+  //   );
 
-    return { characterId, reply: userSpecificChat };
-  }
+  //   return { characterId, reply: userSpecificChat };
+  // }
 
   //creating character chat. This is only for admin. This creates only one instance.
   @UseGuards(CommonJwtGuard)

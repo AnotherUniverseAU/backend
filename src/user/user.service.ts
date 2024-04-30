@@ -10,7 +10,8 @@ import { FirebaseService } from 'src/firebase/firebase.service';
 import nicknameModifier from '../global/nickname-modifier';
 import { CancelReasonRepository } from 'src/repository/cancel-reason.repository';
 import { ReplyEventDto } from 'src/global/dto/reply-event.dto';
-import { userInfo } from 'os';
+import { winstonLogger } from 'src/common/logger/winston.util';
+
 @Injectable()
 export class UserService {
   constructor(
@@ -40,7 +41,7 @@ export class UserService {
 
   @OnEvent('subscribe-user')
   async subscribeUser(payload: SubscriptionEventDTO) {
-    var user: User;
+    let user: User;
 
     user = await this.userRepo.findById(payload.userId);
 
@@ -66,88 +67,114 @@ export class UserService {
     );
   }
 
-  @OnEvent('send-reply')
-  async sendUserReplyNotification(payload: ReplyEventDto) {
-    const { user, characterChat } = payload;
+  // @OnEvent('reply-broadcast')
+  // async sendUserReplyNotification(payload: CharacterChat) {
+  //   const { user, content } = payload;
 
-    const reply = characterChat.reply;
+  //   const reply = characterChat.reply;
 
-    const userSpecificChat = reply.map((chat) => {
-      return nicknameModifier(user.nickname, chat);
-    });
-    const characterName = characterChat.characterName;
-    const title = `${characterName}님이 새로운 채팅을 보냈어요`;
-    const body = userSpecificChat;
-    const characterId = characterChat.characterId.toString();
-    const fcmToken = user.fcmToken;
-    const isUserActive = true;
+  //   const userSpecificChat = reply.map((chat) => {
+  //     return nicknameModifier(user.nickname, chat);
+  //   });
+  //   const characterName = characterChat.characterName;
+  //   const title = characterName;
+  //   const body = userSpecificChat[0];
+  //   const characterId = characterChat.characterId.toString();
+  //   const fcmToken = user.fcmToken;
 
-    console.log(
-      'sending reply notification',
-      title,
-      body,
-      user._id,
-      characterId,
-    );
+  //   console.log(
+  //     'sending reply notification',
+  //     title,
+  //     body,
+  //     user._id,
+  //     characterId,
+  //   );
 
-    await this.firebaseService.sendUserNotification(
-      title,
-      body,
-      fcmToken,
-      characterId,
-      isUserActive,
-    );
-  }
+  //   await this.firebaseService.sendUserNotification(
+  //     user._id.toString(),
+  //     title,
+  //     body,
+  //     fcmToken,
+  //     characterId,
+  //   );
+  // }
 
   @OnEvent('broadcast')
-  async sendUserChatNotification(payload: CharacterChat) {
+  async sendUserChatNotification(payload: CharacterChat, type: string) {
     // find by subscribed character
     const allUsers = await this.userRepo.findBySubscribedCharacter(
       payload.characterId,
     );
     const characterId = payload.characterId.toString();
-    const characterName = payload.characterName;
-    const characterChat = payload.content;
-    console.log(allUsers);
+    const { characterName, content, reply, timeToSend } = payload;
     await Promise.all(
       allUsers.map(async (user) => {
-        if (!user.chatRoomDatas.get(characterId)) return;
+        let isUserActive: boolean;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (user.lastAccess < yesterday) isUserActive = false;
+        else isUserActive = true;
+
+        // 휴면 유저라면 return
+        if (!isUserActive) {
+          winstonLogger.log(
+            `휴면 계정입니다. : ${user._id}, 마지막 접속 : ${user.lastAccess}`,
+          );
+          return;
+          // 캐릭터 구독하지 않은 유저 promise 종료
+        } else if (!user.chatRoomDatas.get(characterId)) {
+          winstonLogger.error(
+            `캐릭터 구독을 하지 않아 보내지 못했습니다 : ${user._id}`,
+          );
+          return;
+          // fcm 토큰 없는 유저 promise 종료
+        } else if (!user.fcmToken) {
+          winstonLogger.error(
+            `fcm토큰이 없어 메시지를 보내지 못했습니다 : ${user._id}`,
+          );
+          return;
+        }
 
         const fcmToken = user.fcmToken;
+
         const chatRoomData = user.chatRoomDatas.get(characterId);
         //if user have set the specific nickname, use it else, default nickname
         const nickname = chatRoomData.nickname
           ? chatRoomData.nickname
           : user.nickname;
 
-        const userSpecificChat = characterChat.map((chat) => {
-          const modifiedChat = nicknameModifier(nickname, chat);
-          if (modifiedChat.includes('https://')) return '사진';
-          else return modifiedChat;
-        });
-        const title = `${characterName}님이 새로운 채팅을 보냈어요`;
-        const body = userSpecificChat;
-        console.log(title, body);
+        // type(chat, reply)에 따른 fcm 알림 내용 설정
+        let textListToSend: string[];
+        if (type === 'chat') textListToSend = content;
+        else textListToSend = reply;
 
-        var isUserActive: boolean;
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        if (user.lastAccess < yesterday) isUserActive = false;
-        else isUserActive = true;
-        await this.firebaseService.sendUserNotification(
-          title,
-          body,
-          fcmToken,
-          chatRoomData.characterId.toString(),
-          isUserActive,
-        );
+        const userSpecificChat = textListToSend.map((chat) => {
+          if (chat.includes('https://')) return '캐릭터가 사진을 보냈습니다';
+          else {
+            const modifiedChat = nicknameModifier(nickname, chat);
+            return modifiedChat;
+          }
+        });
+        const title = characterName;
+        const body = userSpecificChat[0];
 
         //update chatRoom lastchat
         chatRoomData.lastChat = userSpecificChat[userSpecificChat.length - 1];
         chatRoomData.unreadCounts += userSpecificChat.length;
-        chatRoomData.lastChatDate = new Date();
+        chatRoomData.lastChatDate =
+          type === 'chat'
+            ? timeToSend
+            : new Date(Number(timeToSend) + 30 * 60 * 1000);
         user.chatRoomDatas.set(characterId, chatRoomData);
         await user.save();
+
+        await this.firebaseService.sendUserNotification(
+          user._id.toString(),
+          title,
+          body,
+          fcmToken,
+          chatRoomData.characterId.toString(),
+        );
       }),
     );
   }
