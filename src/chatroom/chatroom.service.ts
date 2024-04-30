@@ -116,7 +116,7 @@ export class ChatRoomService {
       }, timeTosend - currentTime);
 
       // 답장 있다면 30분 뒤로 예약
-      if (characterChat.reply) {
+      if (characterChat.reply.length > 0) {
         setTimeout(
           () => {
             //this goes to user domain currently
