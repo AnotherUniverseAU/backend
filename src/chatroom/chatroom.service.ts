@@ -12,10 +12,13 @@ import { ConfigService } from '@nestjs/config';
 import { Types } from 'mongoose';
 import { UserReply } from 'src/schemas/chat-schema/user-reply.schema';
 import nicknameModifier from '../global/nickname-modifier';
-import { chat } from 'googleapis/build/src/apis/chat';
-import { User, UserDocument } from 'src/schemas/user.schema';
+import { UserDocument } from 'src/schemas/user.schema';
 import { ReplyEventDto } from 'src/global/dto/reply-event.dto';
 import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
+import { UserRepository } from 'src/repository/user.repository';
+import { FirebaseService } from 'src/firebase/firebase.service';
+import { winstonLogger } from 'src/common/logger/winston.util';
+
 @Injectable()
 export class ChatRoomService {
   private containerName: string;
@@ -27,6 +30,8 @@ export class ChatRoomService {
     private eventEmitter: EventEmitter2,
     private chatRoomUtils: ChatRoomUtils,
     private userReplyRepository: UserReplyRepository,
+    private userRepo: UserRepository,
+    private firebaseService: FirebaseService,
   ) {
     this.containerName = this.configService.get<string>(
       'AZURE_STORAGE_CONTAINER_NAME',
@@ -40,15 +45,62 @@ export class ChatRoomService {
   @Cron('0 * * * *')
   async checkChatTimeToSend() {
     const startOfHour = new Date();
-    console.log('finding chat to send at time: ', startOfHour);
+    winstonLogger.log('finding chat to send at time');
     const hourCharacterChats =
       await this.characterChatRepo.findByHour(startOfHour);
 
     if (hourCharacterChats) {
       this.scheduleSend(hourCharacterChats);
     }
-    console.log('sending chats in an hour: ', hourCharacterChats);
+    winstonLogger.log('sending chats in an hour: ', hourCharacterChats);
     return hourCharacterChats;
+  }
+
+  // 비활성 유저에게 하루 한 번
+  // @Cron('* * * * *')
+  @Cron('* * 20 * *')
+  async sendNotiToInactiveUser() {
+    const allUsers = await this.userRepo.findAll();
+    winstonLogger.log(`20시 정시 알림 비활성 유저들에게 발송 시작`);
+
+    await Promise.all(
+      allUsers.map(async (user) => {
+        if (!user.fcmToken) {
+          winstonLogger.error(
+            `fcm토큰이 없어 메시지를 보내지 못했습니다 : ${user._id}`,
+          );
+          return;
+        } else if (user.subscribedCharacters.length === 0) {
+          winstonLogger.error(
+            `구독한 캐릭터가 없어 메시지를 보내지 못했습니다 : ${user._id}`,
+          );
+          return;
+        }
+
+        let isUserActive: boolean;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (user.lastAccess < yesterday) isUserActive = false;
+        else isUserActive = true;
+
+        if (isUserActive) {
+          winstonLogger.log(
+            `활성 유저에게는 정시 알림을 보내지 않습니다 : ${user._id}`,
+          );
+          return;
+        }
+
+        const title = 'AU';
+        const body = '오늘 최애가 보낸 메시지를 확인해 보세요 💌';
+        const fcmToken = user.fcmToken;
+        await this.firebaseService.sendUserNotification(
+          user._id.toString(),
+          title,
+          body,
+          fcmToken,
+        );
+      }),
+    );
   }
 
   private scheduleSend(hourChatLogs: CharacterChat[]) {
@@ -56,10 +108,24 @@ export class ChatRoomService {
       const timeTosend = characterChat.timeToSend.getTime();
       const currentTime = new Date().getTime();
 
+      // characterChat 내용 예약
       setTimeout(() => {
         //this goes to user domain currently
-        this.eventEmitter.emit('broadcast', characterChat);
+        const type = 'chat';
+        this.eventEmitter.emit('broadcast', characterChat, type);
       }, timeTosend - currentTime);
+
+      // 답장 있다면 30분 뒤로 예약
+      if (characterChat.reply) {
+        setTimeout(
+          () => {
+            //this goes to user domain currently
+            const type = 'reply';
+            this.eventEmitter.emit('broadcast', characterChat, type);
+          },
+          timeTosend - currentTime + 30 * 60 * 1000,
+        );
+      }
     });
   }
 
@@ -68,18 +134,34 @@ export class ChatRoomService {
     return chatCache;
   }
 
-  async bookCharacterReply(user: UserDocument, chatId: string) {
-    const characterChat = await this.getCharacterChatById(chatId);
+  // async bookCharacterReply(
+  //   user: UserDocument,
+  //   chatId: string,
+  //   characterId: string,
+  //   userSpecificChat: string[],
+  // ) {
+  //   const characterChat = await this.getCharacterChatById(chatId);
 
-    const replyEventDto = new ReplyEventDto(user, characterChat);
+  //   const replyEventDto = new ReplyEventDto(user, characterChat);
 
-    setTimeout(
-      () => {
-        this.eventEmitter.emit('send-reply', replyEventDto);
-      },
-      5 * 60 * 1000,
-    );
-  }
+  //   setTimeout(
+  //     () => {
+  //       this.eventEmitter.emit('send-reply', replyEventDto);
+
+  //       async function setData() {
+  //         const chatRoomData = user.chatRoomDatas.get(characterId);
+  //         chatRoomData.lastAccess = new Date();
+  //         chatRoomData.lastChat = userSpecificChat[userSpecificChat.length - 1];
+  //         chatRoomData.unreadCounts = userSpecificChat.length;
+  //         chatRoomData.lastChatDate = new Date();
+  //         user.chatRoomDatas.set(characterId, chatRoomData);
+  //         await user.save();
+  //       }
+  //       setData();
+  //     },
+  //     30 * 60 * 1000,
+  //   );
+  // }
 
   async handleReplyRequest(
     nickname: string,

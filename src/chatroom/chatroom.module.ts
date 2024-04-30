@@ -12,16 +12,14 @@ import { AuthModule } from 'src/auth/auth.module';
 import { UserRepository } from 'src/repository/user.repository';
 import { User, UserSchema } from 'src/schemas/user.schema';
 import { ChatRoomUtils } from './chatroom.utils';
+import { FirebaseService } from 'src/firebase/firebase.service';
 import {
   UserReply,
   UserReplySchema,
 } from 'src/schemas/chat-schema/user-reply.schema';
 import { UserReplyRepository } from 'src/repository/user-reply-repository/user-reply.repository';
-import {
-  CancelReason,
-  CancelReasonSchema,
-} from 'src/schemas/cancel-reason.schema';
-// import { UserReplyCacheRepository } from 'src/repository/user-reply-repository/reply-cache.repository';
+import { FirebaseModule } from 'src/firebase/firebase.module';
+import { LoggerModule } from 'src/common/logger/logger.module';
 
 @Module({
   imports: [
@@ -31,6 +29,8 @@ import {
       { name: User.name, schema: UserSchema },
       { name: UserReply.name, schema: UserReplySchema },
     ]),
+    FirebaseModule,
+    LoggerModule,
   ],
   providers: [
     ChatRoomService,
@@ -39,6 +39,8 @@ import {
     // UserReplyCacheRepository,
     UserRepository,
     ChatRoomUtils,
+    UserRepository,
+    FirebaseService,
   ],
   controllers: [ChatRoomController],
 })

@@ -79,6 +79,7 @@ export class UserController {
 
     const chat = new CharacterChat(chats);
     console.log('controller', chat);
-    this.userService.sendUserChatNotification(chat);
+    const type = 'chat';
+    this.userService.sendUserChatNotification(chat, type);
   }
 }
