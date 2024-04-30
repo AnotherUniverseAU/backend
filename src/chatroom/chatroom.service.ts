@@ -289,7 +289,12 @@ export class ChatRoomService {
       this.containerName,
     );
     const blobClient = containerClient.getBlockBlobClient(fileName);
-    const result = await blobClient.upload(fileBuffer, fileBuffer.length);
+    const options = { blobHTTPHeaders: { blobContentType: 'image/svg+xml' } };
+    const result = await blobClient.upload(
+      fileBuffer,
+      fileBuffer.length,
+      options,
+    );
     return { fileUrl: blobClient.url, result };
   }
 
