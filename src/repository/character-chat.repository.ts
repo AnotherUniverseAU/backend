@@ -112,6 +112,8 @@ export class CharacterChatRepository {
     var validatedStartofDay: Date;
     if (startOfDay < createdDate) {
       validatedStartofDay = createdDate;
+    } else {
+      validatedStartofDay = startOfDay;
     }
 
     const characterChats = await this.characterChatModel.find({
