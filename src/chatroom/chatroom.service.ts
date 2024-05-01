@@ -58,10 +58,10 @@ export class ChatRoomService {
 
   // 비활성 유저에게 하루 한 번
   // @Cron('* * * * *')
-  @Cron('* * 20 * *')
+  @Cron('0 12 * * *')
   async sendNotiToInactiveUser() {
     const allUsers = await this.userRepo.findAll();
-    winstonLogger.log(`20시 정시 알림 비활성 유저들에게 발송 시작`);
+    winstonLogger.log(`한국시간 21시 정시 알림 비활성 유저들에게 발송 시작`);
 
     await Promise.all(
       allUsers.map(async (user) => {
