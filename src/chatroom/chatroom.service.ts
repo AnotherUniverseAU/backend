@@ -178,12 +178,14 @@ export class ChatRoomService {
     characterId: string,
     date: Date,
     offset: number,
+    createdDate: Date,
   ): Promise<CharacterChat[]> {
     const characterChats =
       await this.characterChatRepo.findByCharacterIdAndDate(
         characterId,
         date,
         offset,
+        createdDate,
       );
 
     return characterChats;

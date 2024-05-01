@@ -69,6 +69,8 @@ export class ChatRoomController {
 
     const date = new Date(timestamp);
 
+    const chatRoomData = user.chatRoomDatas.get(characterId);
+
     if (isNaN(date.getTime()) || (date > new Date() && user.role != 'admin'))
       throw new HttpException('invalid date', 400);
 
@@ -76,9 +78,8 @@ export class ChatRoomController {
       characterId,
       date,
       offset,
+      chatRoomData.createdDate,
     );
-
-    const chatRoomData = user.chatRoomDatas.get(characterId);
 
     let nickname = chatRoomData.nickname;
     if (!nickname) nickname = user.nickname;

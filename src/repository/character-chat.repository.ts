@@ -86,12 +86,17 @@ export class CharacterChatRepository {
     characterId: string,
     date: Date,
     offset: number,
+    createdDate: Date,
   ): Promise<CharacterChat[]> {
     const { startOfDay, endOfDay } = getOneDayWindowPagination(date, offset);
+    var validatedStartofDay: Date;
+    if (startOfDay < createdDate) {
+      validatedStartofDay = createdDate;
+    }
 
     const characterChats = await this.characterChatModel.find({
       characterId: new Types.ObjectId(characterId),
-      timeToSend: { $gte: startOfDay, $lt: endOfDay },
+      timeToSend: { $gte: validatedStartofDay, $lt: endOfDay },
     });
     return characterChats;
   }
