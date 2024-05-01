@@ -82,6 +82,26 @@ export class CharacterChatRepository {
     return result;
   }
 
+  async addImageToChat(
+    characeterId: string,
+    timeToSend: Date,
+    imageUrl: string,
+  ) {
+    const result = await this.characterChatModel.updateOne(
+      {
+        characterId: new Types.ObjectId(characeterId),
+        timeToSend: timeToSend,
+      },
+      {
+        $push: {
+          content: imageUrl,
+        },
+      },
+    );
+
+    return result;
+  }
+
   async findByCharacterIdAndDate(
     characterId: string,
     date: Date,

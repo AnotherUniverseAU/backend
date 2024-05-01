@@ -9,7 +9,7 @@ import { UserReplyRepository } from 'src/repository/user-reply-repository/user-r
 import { UserReplyDTO } from './dto/user-reply.dto';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { ConfigService } from '@nestjs/config';
-import { Types } from 'mongoose';
+import { Types, UpdateWriteOpResult } from 'mongoose';
 import { UserReply } from 'src/schemas/chat-schema/user-reply.schema';
 import nicknameModifier from '../global/nickname-modifier';
 import { UserDocument } from 'src/schemas/user.schema';
@@ -18,7 +18,7 @@ import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 import { UserRepository } from 'src/repository/user.repository';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { winstonLogger } from 'src/common/logger/winston.util';
-
+import * as moment from 'moment-timezone';
 @Injectable()
 export class ChatRoomService {
   private containerName: string;
@@ -248,6 +248,34 @@ export class ChatRoomService {
     const result = await this.characterChatRepo.addReplies(chatReplyDTOs);
     const chatHeaders = chatReplyDTOs.map((chat) => chat.reply[0]);
     return { result, errorLines, chatHeaders };
+  }
+
+  async addImageToCharacterChat(
+    characterId: string,
+    image: Express.Multer.File,
+    timeToSend: Date,
+  ): Promise<UpdateWriteOpResult> {
+    const fileBuffer = image.buffer;
+    const koreanTTS = new Date(timeToSend.getTime() + 9 * 60 * 60 * 1000);
+    const timeFormat = moment(koreanTTS).format('YYYY-MM-DD/HH-mm');
+    const newImageName = `${characterId}/${timeFormat}_${new Types.ObjectId()}.${image.originalname.split('.')[1]}`;
+
+    winstonLogger.log(
+      `uploading character chat image for characterId: ${characterId} at ${timeToSend.toISOString()}`,
+      newImageName,
+    );
+
+    const imageBlob = await this.uploadImageToAzure(fileBuffer, newImageName);
+
+    const imageUrl = imageBlob.fileUrl;
+
+    const result = await this.characterChatRepo.addImageToChat(
+      characterId,
+      timeToSend,
+      imageUrl,
+    );
+
+    return result;
   }
 
   async addUserReply(userId: Types.ObjectId, userReplyDTO: UserReplyDTO) {

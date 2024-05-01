@@ -209,6 +209,34 @@ export class ChatRoomController {
   }
 
   @UseGuards(CommonJwtGuard)
+  @UseInterceptors(FileInterceptor('image'))
+  @Post(':characterId/chat-image')
+  async addImageToCharacterChat(
+    @Req() req: Request,
+    @UploadedFile() image: Express.Multer.File,
+    @Param('characterId') characterId: string,
+    @Body('timeToSend') timeToSend: string,
+  ) {
+    const user = req.user as UserDocument;
+    if (user.role != 'admin')
+      throw new UnauthorizedException('unauthorized access');
+    if (!characterId || !image) {
+      throw new HttpException(
+        'characterId and image must be provided',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const imageUrl = await this.chatRoomService.addImageToCharacterChat(
+      characterId,
+      image,
+      new Date(timeToSend),
+    );
+
+    return { imageUrl };
+  }
+
+  @UseGuards(CommonJwtGuard)
   @Post('set-nickname/:characterId')
   @HttpCode(201)
   async setNickname(
