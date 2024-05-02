@@ -123,7 +123,7 @@ export class UserService {
           return;
           // 캐릭터 구독하지 않은 유저 promise 종료
         } else if (!user.chatRoomDatas.get(characterId)) {
-          winstonLogger.error(
+          winstonLogger.warn(
             `캐릭터 구독을 하지 않아 보내지 못했습니다 : ${user._id}`,
           );
           return;

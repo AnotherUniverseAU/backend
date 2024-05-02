@@ -28,7 +28,7 @@ export class SubscriptionService {
         user._id,
         characterId,
       );
-    var subscription: Subscription;
+    let subscription: Subscription;
     if (oldSubscription) subscription = oldSubscription;
     else subscription = await this.subsriptionRepo.create(subscriptionDTO);
 
@@ -55,7 +55,7 @@ export class SubscriptionService {
     );
     console.log(subscription);
 
-    var payload: SubscriptionEventDTO;
+    let payload: SubscriptionEventDTO;
 
     if (!subscription) {
       payload = new SubscriptionEventDTO(user._id.toString(), characterId, '');

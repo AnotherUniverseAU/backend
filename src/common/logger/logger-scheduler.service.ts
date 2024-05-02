@@ -21,12 +21,13 @@ export class LoggerSchedulerService {
     );
   }
 
-  @Cron('1 0 * * *')
+  @Cron('30 15 * * *')
   async uploadCache() {
     winstonLogger.log('uploading cache logs to azure');
     const yesterday = new Date();
     const pad = (num: number) => String(num).padStart(2, '0');
     const yesterdayLog = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`;
+
     const yesterdayInfoLog = yesterdayLog + '.info.log';
     const yesterdayInfoLogDir = path.join(
       process.cwd(),
@@ -39,28 +40,33 @@ export class LoggerSchedulerService {
       'logs',
       yesterdayWarningLog,
     );
+    const yesterdayErrorLog = yesterdayLog + '.error.log';
+    const yesterdayErrorLogDir = path.join(
+      process.cwd(),
+      'logs',
+      yesterdayErrorLog,
+    );
 
     const readFile = util.promisify(fs.readFile);
     const InfoBuffer = await readFile(yesterdayInfoLogDir);
     const WarningBuffer = await readFile(yesterdayWarningLogDir);
+    const ErrorBuffer = await readFile(yesterdayErrorLogDir);
 
-    const containerClient = this.blobServiceClient.getContainerClient(
-      this.containerName,
-    );
+    const containerClient = this.blobServiceClient.getContainerClient('logger');
     const infoBlobClient = containerClient.getBlockBlobClient(
       `logs/${yesterdayInfoLog}`,
     );
-
-    winstonLogger.log(this.containerName);
-
-    const result = await infoBlobClient.upload(InfoBuffer, InfoBuffer.length);
-    winstonLogger.log({ url: infoBlobClient.url });
+    await infoBlobClient.upload(InfoBuffer, InfoBuffer.length);
 
     const warningBlobClient = containerClient.getBlockBlobClient(
       `logs/${yesterdayWarningLog}`,
     );
-
     await warningBlobClient.upload(WarningBuffer, WarningBuffer.length);
+
+    const errorBlobClient = containerClient.getBlockBlobClient(
+      `logs/${yesterdayErrorLog}`,
+    );
+    await errorBlobClient.upload(ErrorBuffer, ErrorBuffer.length);
 
     winstonLogger.log('uploaded cache logs');
   }

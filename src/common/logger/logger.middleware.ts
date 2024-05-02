@@ -21,6 +21,10 @@ export class LoggerMiddleware implements NestMiddleware {
         winstonLogger.error(
           `[${method}]${originalUrl}(${statusCode}) ${ip} ${userAgent}`,
         );
+      else
+        winstonLogger.log(
+          `[${method}]${originalUrl}(${statusCode}) ${ip} ${userAgent}`,
+        );
     });
 
     next();

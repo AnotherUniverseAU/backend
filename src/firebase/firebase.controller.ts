@@ -40,13 +40,13 @@ export class FirebsaeController {
     const fcmToken = user.fcmToken;
 
     if (!user.subscribedCharacters.length) {
-      winstonLogger.error('no subscribed characters');
+      winstonLogger.warn(`no subscribed characters : ${user}`);
       throw new HttpException(
         'no subscribed characters',
         HttpStatus.BAD_REQUEST,
       );
     } else if (!fcmToken) {
-      winstonLogger.error('no fcmToken');
+      winstonLogger.error(`no fcmToken : ${user}`);
       throw new HttpException('no fcmToken', HttpStatus.BAD_REQUEST);
     }
 
