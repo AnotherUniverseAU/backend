@@ -42,6 +42,15 @@ export class UserController {
     @Body('nickname') nickname: string,
   ) {
     const user = req.user as UserDocument;
+
+    // chatRoomdatas > chatRoomdata마다
+    user.chatRoomDatas.forEach((chatRoom) => {
+      // 해당 방 닉네임이 user.nickname과 같다면 (= set-nickname 하지 않은 닉네임)
+      if (chatRoom.nickname === user.nickname) {
+        chatRoom.nickname = nickname;
+      }
+    });
+
     user.nickname = nickname;
     await user.save();
     return this.userService.getUserInfo(user);
