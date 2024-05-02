@@ -21,7 +21,7 @@ export class LoggerSchedulerService {
     );
   }
 
-  @Cron('30 15 * * *')
+  @Cron('1 0 * * *')
   async uploadCache() {
     winstonLogger.log('uploading cache logs to azure');
     const yesterday = new Date();
