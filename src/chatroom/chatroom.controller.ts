@@ -308,7 +308,7 @@ export class ChatRoomController {
       throw new HttpException('user not subscribed to character', 400);
     }
     if (!image) {
-      winstonLogger.error('no image provided');
+      winstonLogger.warn('no image provided');
       throw new HttpException('no image provided', 400);
     }
 

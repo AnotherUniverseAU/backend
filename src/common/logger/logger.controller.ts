@@ -25,7 +25,6 @@ export class LoggerController {
     if (user.role !== 'admin') {
       winstonLogger.log('unauthorized access to upload logs');
       throw new UnauthorizedException();
-      return;
     }
     winstonLogger.log('uploading today logs');
     this.loggerService.uploadCache();
