@@ -7,6 +7,7 @@ import {
   Req,
   HttpCode,
   Param,
+  HttpException,
 } from '@nestjs/common';
 import { UserDocument } from 'src/schemas/user.schema';
 import { UserService } from './user.service';
@@ -67,16 +68,25 @@ export class UserController {
   }
 
   @UseGuards(CommonJwtGuard)
-  @Post('delete-user')
+  @Post('withdraw')
   @HttpCode(200)
   async deleteUser(
     @Req() req: Request,
     @Body('cancelType') cancelType: number,
     @Body('reason') reason: string,
+    @Body('nickname') nickname: string,
   ) {
     const user = req.user as UserDocument;
-    await this.userService.deleteUser(user, cancelType, reason);
-    return { msg: 'deleted' };
+    // 올바른 페이지에서 보낸 것 확인 => abuse 방지
+    if (nickname === user.nickname) {
+      await this.userService.deleteUser(user, cancelType, reason);
+      return { msg: 'deleted' };
+    } else {
+      throw new HttpException(
+        'given nickname does not match with user nickname',
+        400,
+      );
+    }
   }
 
   @UseGuards(CommonJwtGuard)
