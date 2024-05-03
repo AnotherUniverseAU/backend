@@ -99,10 +99,10 @@ export class CharacterController {
     const helloMessageSet = await this.characterService.getCharacterHello(id);
     const chatRoomData = user.chatRoomDatas.get(id);
 
-    var helloMessage: string[];
+    let helloMessage: string[];
 
     const subscriptionStartTimeLocal = chatRoomData.createdDate.getTime() + 9;
-    if (subscriptionStartTimeLocal > 4 && subscriptionStartTimeLocal < 8)
+    if (subscriptionStartTimeLocal > 2 && subscriptionStartTimeLocal < 7)
       helloMessage = helloMessageSet.helloMessageNight;
     else helloMessage = helloMessageSet.helloMessageDay;
 
