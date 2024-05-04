@@ -68,11 +68,13 @@ export class ChatRoomController {
     if (!offset) offset = 0;
 
     const date = new Date(timestamp);
+    const afterFiveMin = new Date(new Date().getTime() + 5 * 60 * 1000);
 
     const chatRoomData = user.chatRoomDatas.get(characterId);
 
-    if (isNaN(date.getTime()) || (date > new Date() && user.role != 'admin'))
-      throw new HttpException('invalid date', 400);
+    if (isNaN(date.getTime())) throw new HttpException('invalid date', 400);
+    else if (date > afterFiveMin && user.role != 'admin')
+      throw new HttpException('not admin', 401);
 
     const characterChats = await this.chatRoomService.getCharacterChatByDay(
       characterId,
