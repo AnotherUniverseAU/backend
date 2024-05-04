@@ -105,7 +105,7 @@ export class ChatRoomController {
     const currentDateOffset = new Date(timestamp);
     currentDateOffset.setDate(currentDateOffset.getDate() + offset);
 
-    if (chatRoomData.createdDate <= currentDateOffset && user.role != 'admin')
+    if (chatRoomData.createdDate >= currentDateOffset && user.role != 'admin')
       return { characterChats: [], userReplies: [], isLast: true };
 
     return { characterChats, userReplies };
