@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Mode } from 'fs';
 import { Model, Types } from 'mongoose';
+import { CharacterReport } from 'src/schemas/character-report.schema';
 import { Character, CharacterDocument } from 'src/schemas/character.schema';
 import { User } from 'src/schemas/user.schema';
 
@@ -9,6 +10,8 @@ import { User } from 'src/schemas/user.schema';
 export class CharacterRepository {
   constructor(
     @InjectModel(Character.name) private characterModel: Model<Character>,
+    @InjectModel(CharacterReport.name)
+    private characterReportModel: Model<CharacterReport>,
   ) {}
 
   //needs paging
@@ -45,5 +48,19 @@ export class CharacterRepository {
       { $set: payload },
     );
     return result;
+  }
+
+  async createCharacterReport(
+    characterId: Types.ObjectId,
+    userId: Types.ObjectId,
+    complainment: string,
+  ): Promise<CharacterReport> {
+    const newReport = await this.characterReportModel.create({
+      characterId,
+      reporterId: userId,
+      complainment,
+    });
+
+    return newReport;
   }
 }

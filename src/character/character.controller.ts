@@ -197,4 +197,21 @@ export class CharacterController {
       throw new HttpException('no such chatroom', HttpStatus.BAD_REQUEST);
     }
   }
+
+  @UseGuards(CommonJwtGuard)
+  @Post('complain/:characterId')
+  @HttpCode(201)
+  async postComplain(
+    @Req() req: Request,
+    @Param('characterId') characterId: string,
+    @Body('complainment') complainment: string,
+  ) {
+    const user = req.user as UserDocument;
+    const result = await this.characterService.saveCharacterReport(
+      characterId,
+      user._id,
+      complainment,
+    );
+    return result;
+  }
 }

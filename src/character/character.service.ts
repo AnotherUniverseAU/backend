@@ -7,6 +7,7 @@ import { CharacterCreationRepository } from 'src/repository/character-creation.r
 import { CharacterCreation } from 'src/schemas/character-creation.schema';
 import { CharacterDTO } from './dto/character.dto';
 import { User } from 'src/schemas/user.schema';
+import { CharacterReport } from 'src/schemas/character-report.schema';
 @Injectable()
 export class CharacterService {
   constructor(
@@ -87,5 +88,19 @@ export class CharacterService {
       new CharacterDTO(character).toNameAndPic(),
     );
     return characterDTOs;
+  }
+
+  async saveCharacterReport(
+    characterId: string,
+    userId: Types.ObjectId,
+    complainment: string,
+  ): Promise<CharacterReport> {
+    const characterReport = await this.characterRepo.createCharacterReport(
+      new Types.ObjectId(characterId),
+      userId,
+      complainment,
+    );
+
+    return characterReport;
   }
 }
