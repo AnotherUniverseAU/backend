@@ -10,6 +10,10 @@ import {
   CharacterCreationSchema,
 } from 'src/schemas/character-creation.schema';
 import { CharacterCreationRepository } from 'src/repository/character-creation.repository';
+import {
+  CharacterReport,
+  CharacterReportSchema,
+} from 'src/schemas/character-report.schema';
 
 @Module({
   imports: [
@@ -17,6 +21,7 @@ import { CharacterCreationRepository } from 'src/repository/character-creation.r
     MongooseModule.forFeature([
       { name: Character.name, schema: CharacterSchema },
       { name: CharacterCreation.name, schema: CharacterCreationSchema },
+      { name: CharacterReport.name, schema: CharacterReportSchema },
     ]),
   ],
   controllers: [CharacterController],
