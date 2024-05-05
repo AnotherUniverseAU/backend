@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Character } from 'src/schemas/character.schema';
+import { CharacterEntity } from 'src/schemas/character.schema';
 import { Types } from 'mongoose';
 import { CharacterRepository } from 'src/repository/character.repository';
 import { CharacterCreationDTO } from './dto/character-creation.dto';
@@ -8,6 +8,8 @@ import { CharacterCreation } from 'src/schemas/character-creation.schema';
 import { CharacterDTO } from './dto/character.dto';
 import { User } from 'src/schemas/user.schema';
 import { CharacterReport } from 'src/schemas/character-report.schema';
+import { Character } from './charcter';
+import { SetCharacterHelloCommand } from './dto/command/set-character-hello.command';
 @Injectable()
 export class CharacterService {
   constructor(
@@ -20,41 +22,45 @@ export class CharacterService {
     return characters;
   }
 
-  async getCharacterInfo(characterId: string): Promise<Character> {
+  async getCharacterInfo(characterId: string): Promise<CharacterEntity> {
     const character = await this.characterRepo.findById(characterId);
     return character;
   }
 
-  async getMainCharacter(): Promise<Character> {
+  async getMainCharacter(): Promise<CharacterEntity> {
     const mainCharacter = await this.characterRepo.findMainCharacter();
     return mainCharacter;
   }
 
   async getCharacterHello(characterId: string): Promise<Partial<CharacterDTO>> {
     const character = await this.characterRepo.findById(characterId);
+
     return new CharacterDTO(character).toHello();
   }
 
-  async createCharacter(characterData: any): Promise<Character> {
+  async createCharacter(characterData: any): Promise<CharacterEntity> {
     const character = await this.characterRepo.create(characterData);
     return character;
   }
 
-  async setCharacterHello(
-    characterId: string,
-    helloMessage: string[],
-    type: string,
-  ) {
+  async setCharacterHello(setCharacterHelloCommand: SetCharacterHelloCommand) {
     var result: any;
-    if (type === 'day')
-      result = await this.characterRepo.updateById(characterId, {
-        helloMessageDay: helloMessage,
-      });
-    else if (type === 'night')
-      result = await this.characterRepo.updateById(characterId, {
-        helloMessageNight: helloMessage,
-      });
-    return result;
+    const { characterId, type, helloMessage } = setCharacterHelloCommand;
+
+    const character = await this.characterRepo.findById(characterId);
+
+    if (!character) {
+      //404 오류 띄워야함
+      return null;
+    }
+
+    if (type === 'day') {
+      character.helloMessageDay = helloMessage;
+    } else if (type === 'night') {
+      character.helloMessageNight = helloMessage;
+    }
+
+    await this.characterRepo.update(character);
   }
 
   async getCharacterPictureAndName(

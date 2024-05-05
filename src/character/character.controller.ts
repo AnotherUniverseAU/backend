@@ -20,9 +20,12 @@ import { CharacterDTO } from './dto/character.dto';
 import { Types } from 'mongoose';
 import { CharacterCreationDTO } from './dto/character-creation.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { Character } from 'src/schemas/character.schema';
+import { CharacterEntity } from 'src/schemas/character.schema';
 import nicknameModifier from '../global/nickname-modifier';
 import { winstonLogger } from 'src/common/logger/winston.util';
+import { GetCharactersReponse } from './dto/response/get-characters.response';
+import { SetHelloRequest as SetHelloMessageRequest } from './request/set-hello.request';
+import { SetCharacterHelloCommand } from './dto/command/set-character-hello.command';
 
 @Controller('character')
 export class CharacterController {
@@ -37,11 +40,11 @@ export class CharacterController {
     const characters = await this.characterService.getAllCharacters();
 
     if (characters) {
-      const shortCharacterDTOs = characters.map((character) => {
-        return new CharacterDTO(character).toShort();
+      const getCharacterReponse = characters.map((character) => {
+        return GetCharactersReponse.fromDomain(character);
       });
-      console.log(shortCharacterDTOs);
-      return { characters: shortCharacterDTOs };
+
+      return { characters: getCharacterReponse };
     } else {
       return { characters: [] };
     }
@@ -72,7 +75,7 @@ export class CharacterController {
   @HttpCode(200)
   async getCharcterInfo(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as UserDocument;
-    let character: Character;
+    let character: CharacterEntity;
     try {
       character = await this.characterService.getCharacterInfo(id);
     } catch (err) {
@@ -144,18 +147,23 @@ export class CharacterController {
   }
 
   @UseGuards(CommonJwtGuard)
-  @Post('hello/:id')
+  @Post('hello/:characterId')
   @HttpCode(HttpStatus.CREATED)
   async setCharacterHello(
     @Req() req: Request,
-    @Param('id') id: string,
-    @Body('helloMessage') helloMessage: string[],
-    @Body('type') type: string,
+    @Param('characterId') characterId: string,
+    @Body() setHelloMessageRequst: SetHelloMessageRequest,
   ) {
     const user = req.user as UserDocument;
     if (user.role != 'admin') {
       throw new HttpException('unauthorized access', HttpStatus.UNAUTHORIZED);
     }
+
+    const setCharacterHelloCommand = SetCharacterHelloCommand.from_request(
+      characterId,
+      setHelloMessageRequst,
+    );
+
     const result = await this.characterService.setCharacterHello(
       id,
       helloMessage,
