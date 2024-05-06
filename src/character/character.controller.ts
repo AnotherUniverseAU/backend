@@ -110,7 +110,7 @@ export class CharacterController {
 
     if (!chatRoomData.lastChatDate) {
       chatRoomData.lastChatDate = new Date();
-      chatRoomData.unreadCounts = helloMessage.length;
+      chatRoomData.unreadCounts = 0;
       chatRoomData.lastAccess = new Date();
       chatRoomData.lastChat = helloMessage[helloMessage.length - 1].includes(
         'https:',
