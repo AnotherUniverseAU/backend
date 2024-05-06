@@ -107,4 +107,10 @@ export class UserRepository {
 
     return updatedUser;
   }
+
+  async findUsersByQuery(queries: string): Promise<UserDocument[]> {
+    const query = JSON.parse(queries);
+    const users = await this.userModel.find(query);
+    return users;
+  }
 }

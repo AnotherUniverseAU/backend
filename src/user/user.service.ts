@@ -138,6 +138,13 @@ export class UserService {
         const fcmToken = user.fcmToken;
 
         const chatRoomData = user.chatRoomDatas.get(characterId);
+        // 답장 이후에 들어온 유저에게는 답답장 발신 안해주기
+        if (chatRoomData.createdDate > timeToSend) {
+          winstonLogger.log(
+            `유저 구독 시간이 해당 채팅보다 늦어 발신하지 않습니다 : ${user._id}`,
+          );
+          return;
+        }
         //if user have set the specific nickname, use it else, default nickname
         const nickname = chatRoomData.nickname
           ? chatRoomData.nickname
@@ -177,5 +184,10 @@ export class UserService {
         );
       }),
     );
+  }
+
+  async getUserByQueries(queries: string) {
+    const users = await this.userRepo.findUsersByQuery(queries);
+    return users;
   }
 }

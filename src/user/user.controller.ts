@@ -8,6 +8,8 @@ import {
   HttpCode,
   Param,
   HttpException,
+  Query,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserDocument } from 'src/schemas/user.schema';
 import { UserService } from './user.service';
@@ -100,5 +102,21 @@ export class UserController {
     console.log('controller', chat);
     const type = 'chat';
     this.userService.sendUserChatNotification(chat, type);
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @Post('send-marketing-message')
+  @HttpCode(200)
+  async sendMarkettingMessage(
+    @Req() req: Request,
+    @Query('queries') queries: string,
+  ) {
+    const user = req.user as UserDocument;
+    if (user.role !== 'admin') {
+      throw new UnauthorizedException('Unauthorizzed access');
+    }
+
+    const users = this.userService.getUserByQueries(queries);
+    return users;
   }
 }
