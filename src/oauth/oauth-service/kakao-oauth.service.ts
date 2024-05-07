@@ -90,11 +90,11 @@ export class KakaoOauthService implements IOauth {
   extractUserInfo(data: any): OauthDTO {
     const { id, kakao_account } = data;
     // const { profile_nickname, email, phone_number, birthyear, gender } = kakao_account;
-    const { profile_nickname } = kakao_account;
+    const { profile } = kakao_account;
     // const phoneNum = phone_number.replace('+82 ', '0');
-    // const { nickname } = profile_nickname;
+    const { nickname } = profile;
     // const age = this.calculateAge(birthyear);
-    const userInfo = new OauthDTO(id, profile_nickname);
+    const userInfo = new OauthDTO(id, nickname);
     // const userInfo = new OauthDTO(id, nickname, email, phoneNum, age, gender);
 
     return userInfo;
