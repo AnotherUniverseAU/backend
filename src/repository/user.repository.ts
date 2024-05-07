@@ -42,10 +42,10 @@ export class UserRepository {
       _id: new Types.ObjectId(),
       oauthAccounts: [{ provider: mode, id: userInfo.id }],
       nickname: userInfo.nickname,
-      email: userInfo.email,
-      phoneNum: userInfo.phoneNum,
-      gender: userInfo.gender,
-      age: userInfo.age,
+      // email: userInfo.email,
+      // phoneNum: userInfo.phoneNum,
+      // gender: userInfo.gender,
+      // age: userInfo.age,
     });
     await user.save();
     return user;
