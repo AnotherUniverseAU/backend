@@ -49,14 +49,14 @@ export class User {
   @Prop()
   nickname: string;
 
-  @Prop({ unique: true })
-  email: string;
+  // @Prop({ unique: true })
+  // email: string;
 
-  @Prop({ unique: true })
-  phoneNum: string;
+  // @Prop({ unique: true })
+  // phoneNum: string;
 
-  @Prop()
-  gender: string;
+  // @Prop()
+  // gender: string;
 
   @Prop({ type: String, default: 'user' })
   role: string;
