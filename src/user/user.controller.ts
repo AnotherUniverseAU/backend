@@ -105,6 +105,22 @@ export class UserController {
   }
 
   @UseGuards(CommonJwtGuard)
+  @Get('reject-ids')
+  @HttpCode(200)
+  getUserRejectedIds(@Req() req: Request) {
+    const user = req.user as UserDocument;
+    return { rejectedIds: user.rejectedIds };
+  }
+  @UseGuards(CommonJwtGuard)
+  @Get('check-admin')
+  @HttpCode(200)
+  getUserAdmin(@Req() req: Request) {
+    const user = req.user as UserDocument;
+
+    return { isAdmin: user.role === 'admin' };
+  }
+
+  @UseGuards(CommonJwtGuard)
   @Post('send-marketing-message')
   @HttpCode(200)
   async sendMarkettingMessage(

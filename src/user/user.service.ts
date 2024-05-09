@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { User, UserDocument } from 'src/schemas/user.schema';
 import { UserRepository } from 'src/repository/user.repository';
 import { userDataDTO } from './dto/userData.dto';
@@ -183,6 +183,23 @@ export class UserService {
           chatRoomData.characterId.toString(),
         );
       }),
+    );
+  }
+
+  @OnEvent('reject-character')
+  async addUserRejectedIds(userId: Types.ObjectId, characterId: string) {
+    const user = await this.userRepo.findById(String(userId));
+    if (user.rejectedIds.includes(new Types.ObjectId(characterId))) {
+      winstonLogger.error(
+        `[reject-character] ${user._id} user>rejectedIds already contain ${characterId}`,
+      );
+      throw new HttpException('character alreay rejected', 400);
+    }
+    user.rejectedIds.push(new Types.ObjectId(characterId));
+    await user.save();
+
+    winstonLogger.log(
+      `[reject-character] ${user._id} user>rejectedIds updated`,
     );
   }
 
