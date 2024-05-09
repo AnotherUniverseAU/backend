@@ -1,11 +1,13 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Cron } from '@nestjs/schedule';
 import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 import { SubscriptionRepository } from 'src/repository/subscription.repository';
 import { Subscription } from 'src/schemas/subscription.schema';
 import { User } from 'src/schemas/user.schema';
 import { SubscriptionDTO } from './dto/subscription.dto';
+import { Types } from 'mongoose';
+import { winstonLogger } from 'src/common/logger/winston.util';
 
 @Injectable()
 export class SubscriptionService {
@@ -72,6 +74,33 @@ export class SubscriptionService {
       payload,
     );
     //this goes to both user and chatroom service
+    this.eventEmitter.emit('unsubscribe-user', payload);
+  }
+
+  @OnEvent('reject-character')
+  async requestUnsubscriptionFromReject(
+    userId: Types.ObjectId,
+    characterId: string,
+  ) {
+    const subscription = await this.subsriptionRepo.findByUserIdAndCharacterId(
+      userId,
+      characterId,
+    );
+
+    let payload: SubscriptionEventDTO;
+
+    if (!subscription) {
+      payload = new SubscriptionEventDTO(userId.toString(), characterId, '');
+    } else {
+      payload = new SubscriptionEventDTO(
+        userId.toString(),
+        characterId.toString(),
+        subscription._id.toString(),
+      );
+      await subscription.deleteOne();
+    }
+
+    winstonLogger.log(`[reject-character] ${userId} unsubscribed`);
     this.eventEmitter.emit('unsubscribe-user', payload);
   }
 }

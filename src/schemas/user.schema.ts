@@ -61,8 +61,8 @@ export class User {
   @Prop({ type: String, default: 'user' })
   role: string;
 
-  @Prop()
-  age: number;
+  // @Prop()
+  // age: number;
 
   @Prop({ type: Boolean, default: true })
   isNew: boolean;
@@ -89,6 +89,9 @@ export class User {
     { type: Types.ObjectId, required: false, ref: 'Subscription', default: [] },
   ])
   subscriptionIds: Types.ObjectId[];
+
+  @Prop([{ type: Types.ObjectId, required: false, default: [] }])
+  rejectedIds: Types.ObjectId[];
 
   @Prop({ type: String, required: false })
   fcmToken: string;

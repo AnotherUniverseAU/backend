@@ -45,7 +45,7 @@ export class CharacterService {
     helloMessage: string[],
     type: string,
   ) {
-    var result: any;
+    let result: any;
     if (type === 'day')
       result = await this.characterRepo.updateById(characterId, {
         helloMessageDay: helloMessage,

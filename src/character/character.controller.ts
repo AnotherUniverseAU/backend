@@ -23,10 +23,14 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { Character } from 'src/schemas/character.schema';
 import nicknameModifier from '../global/nickname-modifier';
 import { winstonLogger } from 'src/common/logger/winston.util';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Controller('character')
 export class CharacterController {
-  constructor(private characterService: CharacterService) {}
+  constructor(
+    private characterService: CharacterService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   //may work for fater guard => not finding the user just authenticating
   //also need paging
@@ -204,6 +208,7 @@ export class CharacterController {
   async postComplain(
     @Req() req: Request,
     @Param('characterId') characterId: string,
+    @Body('isRejected') isRejected: boolean,
     @Body('complainment') complainment: string,
   ) {
     const user = req.user as UserDocument;
@@ -212,6 +217,14 @@ export class CharacterController {
       user._id,
       complainment,
     );
-    return result;
+
+    // user service, subscription에서 분기 처리
+    winstonLogger.log(`[${user._id}]유저 [${characterId}]캐릭터 차단`);
+    if (isRejected)
+      this.eventEmitter.emit('reject-character', user._id, characterId);
+
+    setTimeout(() => {
+      return result;
+    }, 1000);
   }
 }
