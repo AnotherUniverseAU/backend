@@ -22,17 +22,12 @@ export class AppleOauthService {
     private httpService: HttpService,
     private configService: ConfigService,
   ) {
-    this.APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
-    this.REDIRECT_URI = process.env.REDIRECT_URI;
-    this.APPLE_KEY_ID = process.env.APPLE_KEY_ID;
-    this.APPLE_TEAM_ID = process.env.APPLE_TEAM_ID;
-    this.APPLE_PRIVATE_KEY = process.env.APPLE_PRIVATE_KEY;
-    // this.APPLE_CLIENT_ID = this.configService.get<string>('APPLE_CLIENT_ID');
-    // this.REDIRECT_URI = this.configService.get<string>('REDIRECT_URI');
-    // this.APPLE_KEY_ID = this.configService.get<string>('APPLE_KEY_ID');
-    // this.APPLE_TEAM_ID = this.configService.get<string>('APPLE_TEAM_ID');
-    // this.APPLE_PRIVATE_KEY =
-    //   this.configService.get<string>('APPLE_PRIVATE_KEY');
+    this.APPLE_CLIENT_ID = this.configService.get<string>('APPLE_CLIENT_ID');
+    this.REDIRECT_URI = this.configService.get<string>('REDIRECT_URI');
+    this.APPLE_KEY_ID = this.configService.get<string>('APPLE_KEY_ID');
+    this.APPLE_TEAM_ID = this.configService.get<string>('APPLE_TEAM_ID');
+    this.APPLE_PRIVATE_KEY =
+      this.configService.get<string>('APPLE_PRIVATE_KEY');
   }
   async getJwt() {
     const algorithm = 'ES256';
@@ -46,8 +41,6 @@ export class AppleOauthService {
       sub: this.APPLE_CLIENT_ID,
     };
 
-    //   const privateKey =
-    // '-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgJubE4MX5JY+cydMV\nsZXQ/PoxsR8Vs55hrJkRLLP/gS+gCgYIKoZIzj0DAQehRANCAAQkj2Z8+Q/2oOSo\nt7ix9vqdk43BIsMiy9YbFooczP3iNKYQvdcwL4Q4Pavm2pHgbbvhI0XgJY48+sdE\nKjxtVymF\n-----END PRIVATE KEY-----';
     const token = jwt.sign(
       claim_payload,
       this.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
