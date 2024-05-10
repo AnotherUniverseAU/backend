@@ -75,7 +75,6 @@ export class AppleOauthService {
 
     const { id_token } = response.data;
 
-    // return response;
     return id_token;
   }
 
@@ -93,60 +92,4 @@ export class AppleOauthService {
     const userInfo = new OauthDTO(userId, '');
     return userInfo;
   }
-
-  // async getUserInfo(code: string): Promise<OauthDTO> {
-  //   console.log('obtaining user info');
-  //   let access_token: string;
-  //   try {
-  //     access_token = await this.getAccessToken(code);
-  //   } catch (err) {
-  //     console.log(err);
-  //     throw new Error(err);
-  //   }
-  //   const APPLE_USER_URL = 'https://appleid.apple.com/auth/authorize';
-  //   const header = {
-  //     Authorization: `Bearer ${access_token}`,
-  //     'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
-  //   };
-  //   const response = await firstValueFrom(
-  //     this.httpService.get(APPLE_USER_URL, { headers: header }),
-  //   );
-
-  //   const userInfo = this.extractUserInfo(response.data);
-
-  //   return userInfo;
-  // }
-
-  // async getUserInfoWithAccessToken(access_token: string): Promise<OauthDTO> {
-  //   const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
-  //   const header = {
-  //     Authorization: `Bearer ${access_token}`,
-  //     'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
-  //   };
-  //   let response;
-  //   try {
-  //     response = await firstValueFrom(
-  //       this.httpService.get(KAKAO_USER_URL, { headers: header }),
-  //     );
-  //   } catch (err) {
-  //     console.log(err);
-  //     throw new Error(err);
-  //   }
-  //   const userInfo = this.extractUserInfo(response.data);
-
-  //   return userInfo;
-  // }
-
-  // extractUserInfo(data: any): OauthDTO {
-  //   const { id, kakao_account } = data;
-  //   // const { profile_nickname, email, phone_number, birthyear, gender } = kakao_account;
-  //   const { profile } = kakao_account;
-  //   // const phoneNum = phone_number.replace('+82 ', '0');
-  //   const { nickname } = profile;
-  //   // const age = this.calculateAge(birthyear);
-  //   const userInfo = new OauthDTO(id, nickname);
-  //   // const userInfo = new OauthDTO(id, nickname, email, phoneNum, age, gender);
-
-  //   return userInfo;
-  // }
 }

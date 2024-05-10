@@ -223,8 +223,6 @@ export class CharacterController {
     if (isRejected)
       this.eventEmitter.emit('reject-character', user._id, characterId);
 
-    setTimeout(() => {
-      return result;
-    }, 1000);
+    return result;
   }
 }
