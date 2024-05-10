@@ -11,7 +11,7 @@ export class CharacterReport {
   @Prop({ type: Types.ObjectId, required: true, ref: 'User' })
   reporterId: Types.ObjectId;
 
-  @Prop({ type: String, required: true, length: 200 })
+  @Prop({ type: String, length: 200 })
   complainment: string;
 }
 
