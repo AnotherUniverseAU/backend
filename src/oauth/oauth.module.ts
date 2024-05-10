@@ -10,6 +10,7 @@ import { UserRepository } from '../repository/user.repository';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from 'src/schemas/user.schema';
 import { AuthModule } from 'src/auth/auth.module';
+import { AppleOauthService } from './oauth-service/apple-oauth.service';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AuthModule } from 'src/auth/auth.module';
   controllers: [OauthController],
   providers: [
     KakaoOauthService,
+    AppleOauthService,
     UserRepository,
     OauthServiceFactory,
     CommonOauthService,
