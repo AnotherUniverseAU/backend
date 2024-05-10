@@ -12,6 +12,7 @@ import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
 import { LoggerSchedulerService } from './logger-scheduler.service';
 import { winstonLogger } from './winston.util';
 import { Request } from 'express';
+import { UserDocument } from 'src/schemas/user.schema';
 
 @Controller('logger')
 export class LoggerController {
@@ -21,7 +22,7 @@ export class LoggerController {
   @Post('upload-today-logs')
   @HttpCode(200)
   async uploadTodayLogs(@Req() req: Request) {
-    const user = req.user;
+    const user = req.user as UserDocument;
     if (user.role !== 'admin') {
       winstonLogger.log('unauthorized access to upload logs');
       throw new UnauthorizedException();

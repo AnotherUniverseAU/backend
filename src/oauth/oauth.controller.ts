@@ -13,8 +13,10 @@ import { OauthServiceFactory } from './oauth-service/oauth-service.factory';
 import { HttpExceptionFilter } from 'src/filters/http-exception-filter.filter';
 import { CommonOauthService } from './oauth-service/common-oauth.service';
 import { Response } from 'express';
-//https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=3603e8c93211d595361b3cc334f4940a&redirect_uri=http://127.0.0.1:3000/oauth/kakao
-//redirect_uri=127.0.0.1:3000/oauth/kakao
+import axios from 'axios';
+import { Strategy as AppleStrategy } from 'passport-apple';
+import { PassportModule } from '@nestjs/passport';
+import passport from 'passport';
 
 @Controller('oauth')
 export class OauthController {
