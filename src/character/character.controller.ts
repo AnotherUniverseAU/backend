@@ -212,15 +212,20 @@ export class CharacterController {
     @Body('complainment') complainment: string,
   ) {
     const user = req.user as UserDocument;
+
+    let complaint: string;
+    if (complainment === '') complaint = '비어있음';
+    else complaint = complainment;
+
     const result = await this.characterService.saveCharacterReport(
       characterId,
       user._id,
-      complainment,
+      complaint,
     );
 
     // user service, subscription에서 분기 처리
     winstonLogger.log(`[${user._id}]유저 [${characterId}]캐릭터 차단`);
-    if (isRejected)
+    if (isRejected === true)
       this.eventEmitter.emit('reject-character', user._id, characterId);
 
     return result;
