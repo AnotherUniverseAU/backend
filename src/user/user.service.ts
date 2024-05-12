@@ -203,8 +203,43 @@ export class UserService {
     );
   }
 
-  async getUserByQueries(queries: string) {
-    const users = await this.userRepo.findUsersByQuery(queries);
+  async sendMarketingMessages(
+    query: any,
+    marketingMessageTitle: string,
+    marketingMessage: string,
+  ): Promise<UserDocument[]> {
+    const users = await this.userRepo.findUsersByQuery(query);
+
+    await Promise.all(
+      users.map(async (user) => {
+        let isUserActive: boolean;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (user.lastAccess < yesterday) isUserActive = false;
+        else isUserActive = true;
+
+        // 휴면 유저라면 return
+        if (!isUserActive) {
+          winstonLogger.log(
+            `휴면 계정입니다. : ${user._id}, 마지막 접속 : ${user.lastAccess}`,
+          );
+          return;
+        } else if (!user.fcmToken) {
+          winstonLogger.error(
+            `fcm토큰이 없어 메시지를 보내지 못했습니다 : ${user._id}`,
+          );
+          return;
+        }
+
+        await this.firebaseService.sendUserNotification(
+          user._id.toString(),
+          marketingMessageTitle,
+          marketingMessage,
+          user.fcmToken,
+        );
+      }),
+    );
+
     return users;
   }
 }
