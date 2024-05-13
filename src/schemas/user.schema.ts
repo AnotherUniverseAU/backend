@@ -1,5 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, ObjectId, SchemaTypes, Types } from 'mongoose';
+import { User as DomUser } from 'src/user/dto/domain/user';
+import { ChatRoomData as DomChatRoomData } from 'src/user/dto/domain/chatroom';
 
 @Schema()
 export class ChatRoomData {
@@ -23,6 +25,32 @@ export class ChatRoomData {
 
   @Prop({ type: Date })
   lastChatDate: Date;
+
+  toDomain() {
+    return new DomChatRoomData(
+      this.characterId,
+      this.nickname,
+      this.createdDate,
+      this.lastAccess,
+      this.lastChat,
+      this.unreadCounts,
+      this.lastChatDate,
+    );
+  }
+
+  updateFromDomain(
+    characterId: Types.ObjectId,
+    domChatRoomData: DomChatRoomData,
+  ) {
+    if (this.characterId == characterId) {
+      this.nickname = domChatRoomData.nickname;
+      this.createdDate = domChatRoomData.createdDate;
+      this.lastAccess = domChatRoomData.lastAccess;
+      this.lastChat = domChatRoomData.lastChat;
+      this.unreadCounts = domChatRoomData.unreadCounts;
+      this.lastChatDate = domChatRoomData.lastChatDate;
+    }
+  }
 }
 
 export const ChatRoomDataSchema = SchemaFactory.createForClass(ChatRoomData);
@@ -98,6 +126,29 @@ export class User {
 
   @Prop({ type: Date, default: Date.now })
   lastAccess: Date;
+
+  toDomain() {
+    const newDomChatRoomDatas = new Map();
+
+    this.chatRoomDatas.forEach((value, key) => {
+      newDomChatRoomDatas.set(key, value.toDomain());
+    });
+
+    return new DomUser(
+      this._id,
+      this.oauthAccounts,
+      this.nickname,
+      this.role,
+      this.isNew,
+      this.contributedCharacters,
+      this.subscribedCharacters,
+      newDomChatRoomDatas,
+      this.subscriptionIds,
+      this.rejectedIds,
+      this.fcmToken,
+      this.lastAccess,
+    );
+  }
 }
 
 export type UserDocument = HydratedDocument<User>;

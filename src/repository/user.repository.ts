@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
 import { OauthDTO } from 'src/oauth/dto/oauth.dto';
 import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
+import { ChatRoomData } from 'src/user/dto/domain/chatroom';
 
 @Injectable()
 export class UserRepository {
@@ -112,5 +113,15 @@ export class UserRepository {
     const query = JSON.parse(queries);
     const users = await this.userModel.find(query);
     return users;
+  }
+
+  async setChatRoomData(
+    user: UserDocument,
+    characterId: Types.ObjectId,
+    chatRoomData: ChatRoomData,
+  ) {
+    user.chatRoomDatas.forEach((chd) =>
+      chd.updateFromDomain(characterId, chatRoomData),
+    );
   }
 }

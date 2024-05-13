@@ -2,34 +2,38 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Mode } from 'fs';
 import { Model, Types } from 'mongoose';
-import { CharacterReport } from 'src/schemas/character-report.schema';
-import { Character, CharacterDocument } from 'src/schemas/character.schema';
+import { Character, CharacterReport } from 'src/character/dto/domain';
+import {
+  CharacterEntity,
+  CharacterDocument,
+} from 'src/schemas/character.schema';
 import { User } from 'src/schemas/user.schema';
 
 @Injectable()
 export class CharacterRepository {
   constructor(
-    @InjectModel(Character.name) private characterModel: Model<Character>,
+    @InjectModel(CharacterEntity.name)
+    private characterModel: Model<CharacterEntity>,
     @InjectModel(CharacterReport.name)
     private characterReportModel: Model<CharacterReport>,
   ) {}
 
   //needs paging
-  async findAll(): Promise<CharacterDocument[]> {
+  async findAll(): Promise<Character[]> {
     const characters = await this.characterModel.find({});
-    return characters;
+    return characters.map((character) => character.toDomain());
   }
 
-  async findById(id: string): Promise<CharacterDocument> {
+  async findById(id: string | Types.ObjectId): Promise<Character> {
     const character = await this.characterModel.findById(id);
-    return character;
+    return character.toDomain();
   }
 
-  async findByIds(ids: Types.ObjectId[]): Promise<CharacterDocument[]> {
+  async findByIds(ids: Types.ObjectId[]): Promise<Character[]> {
     const characters = await this.characterModel
       .find({ _id: { $in: ids } })
       .exec();
-    return characters;
+    return characters.map((character) => character.toDomain());
   }
 
   async findMainCharacter(): Promise<CharacterDocument> {
@@ -42,24 +46,26 @@ export class CharacterRepository {
     return await newInstance.save();
   }
 
-  async updateById(characterId: string, payload: any) {
-    const result = await this.characterModel.updateOne(
-      { _id: new Types.ObjectId(characterId) },
-      { $set: payload },
-    );
-    return result;
+  async update(character: Character) {
+    const characterEntity = await this.characterModel.findById(character._id);
+
+    characterEntity.updateFromDomain(character);
+
+    await characterEntity.save();
   }
 
   async createCharacterReport(
-    characterId: Types.ObjectId,
-    userId: Types.ObjectId,
-    complainment: string,
+    characterReport: CharacterReport,
   ): Promise<CharacterReport> {
     const newReport = await this.characterReportModel.create({
-      characterId,
-      reporterId: userId,
-      complainment,
+      characterReport,
     });
+
+    // const newReport = await this.characterReportModel.create({
+    //   characterId,
+    //   reporterId: userId,
+    //   complainment,
+    // });
 
     return newReport;
   }

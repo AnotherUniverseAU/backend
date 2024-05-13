@@ -1,7 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, SchemaTypes, Types } from 'mongoose';
+import { Character } from 'src/character/dto/domain';
 
-export type CharacterDocument = HydratedDocument<Character>;
+export type CharacterDocument = HydratedDocument<CharacterEntity>;
 
 @Schema()
 export class UserReference {
@@ -13,7 +14,7 @@ export class UserReference {
 }
 
 @Schema()
-export class Character {
+export class CharacterEntity {
   @Prop({ type: SchemaTypes.ObjectId })
   _id: Types.ObjectId;
 
@@ -70,6 +71,42 @@ export class Character {
 
   @Prop({ type: Boolean, default: false })
   isMain: boolean;
+
+  toDomain() {
+    return new Character(
+      this._id,
+      this.creator,
+      this.creatorWords,
+      this.contributors,
+      this.name,
+      this.title,
+      this.genre,
+      this.hashtags,
+      this.coverImageUrl,
+      this.mainImageUrl,
+      this.likes,
+      this.profilePicUrl,
+      this.helloMessageDay,
+      this.helloMessageNight,
+      this.isMain,
+    );
+  }
+
+  updateFromDomain(character: Character) {
+    this.creatorWords = character.creatorWords;
+    this.contributors = character.contributors;
+    this.name = character.name;
+    this.title = character.title;
+    this.genre = character.genre;
+    this.hashtags = character.hashtags;
+    this.coverImageUrl = character.coverImageUrl;
+    this.mainImageUrl = character.mainImageUrl;
+    this.likes = character.likes;
+    this.profilePicUrl = character.profilePicUrl;
+    this.helloMessageDay = character.helloMessageDay;
+    this.helloMessageNight = character.helloMessageNight;
+    this.isMain = character.isMain;
+  }
 }
 
-export const CharacterSchema = SchemaFactory.createForClass(Character);
+export const CharacterSchema = SchemaFactory.createForClass(CharacterEntity);

@@ -1,18 +1,25 @@
 import { Injectable } from '@nestjs/common';
-import { Character } from 'src/schemas/character.schema';
-import { Types } from 'mongoose';
+import { Types, UpdateWriteOpResult } from 'mongoose';
 import { CharacterRepository } from 'src/repository/character.repository';
-import { CharacterCreationDTO } from './dto/character-creation.dto';
 import { CharacterCreationRepository } from 'src/repository/character-creation.repository';
-import { CharacterCreation } from 'src/schemas/character-creation.schema';
 import { CharacterDTO } from './dto/character.dto';
-import { User } from 'src/schemas/user.schema';
-import { CharacterReport } from 'src/schemas/character-report.schema';
+import { Character, CharacterCreation, CharacterReport } from './dto/domain';
+import { UserService } from 'src/user/user.service';
+import nicknameModifier from '../global/nickname-modifier';
+import {
+  CharacterCreationCommand,
+  GetSubscribedCharacterInfoCommand,
+  SetCharacterHelloCommand,
+  SaveCharacterReportCommand,
+} from './dto/command';
+import { User } from 'src/user/dto/domain/user';
+
 @Injectable()
 export class CharacterService {
   constructor(
     private characterRepo: CharacterRepository,
     private characterCreationRepo: CharacterCreationRepository,
+    private userService: UserService,
   ) {}
 
   async getAllCharacters(): Promise<Character[]> {
@@ -30,9 +37,38 @@ export class CharacterService {
     return mainCharacter;
   }
 
-  async getCharacterHello(characterId: string): Promise<Partial<CharacterDTO>> {
+  async getCharacterHello(characterId: Types.ObjectId, user: User) {
     const character = await this.characterRepo.findById(characterId);
-    return new CharacterDTO(character).toHello();
+    const chatRoomData = user.chatRoomDatas.get(characterId.toString());
+
+    const { helloMessageDay, helloMessageNight } = character;
+    let helloMessage: string[];
+    const subscriptionStartTimeLocal = chatRoomData.createdDate.getTime() + 9;
+    if (subscriptionStartTimeLocal > 2 && subscriptionStartTimeLocal < 7)
+      helloMessage = helloMessageNight;
+    else helloMessage = helloMessageDay;
+
+    if (!chatRoomData.lastChatDate) {
+      chatRoomData.lastChatDate = new Date();
+      chatRoomData.unreadCounts = 0;
+      chatRoomData.lastAccess = new Date();
+      chatRoomData.lastChat = helloMessage[helloMessage.length - 1].includes(
+        'https:',
+      )
+        ? '사진'
+        : helloMessage[helloMessage.length - 1];
+    }
+
+    await this.userService.setChatRoomData(user._id, characterId, chatRoomData);
+
+    const nickname = chatRoomData.nickname
+      ? chatRoomData.nickname
+      : user.nickname;
+    const userSpecificHello = helloMessage.map((chat) => {
+      return nicknameModifier(nickname, chat);
+    });
+
+    return { userSpecificHello, character };
   }
 
   async createCharacter(characterData: any): Promise<Character> {
@@ -41,20 +77,23 @@ export class CharacterService {
   }
 
   async setCharacterHello(
-    characterId: string,
-    helloMessage: string[],
-    type: string,
-  ) {
-    let result: any;
-    if (type === 'day')
-      result = await this.characterRepo.updateById(characterId, {
-        helloMessageDay: helloMessage,
-      });
-    else if (type === 'night')
-      result = await this.characterRepo.updateById(characterId, {
-        helloMessageNight: helloMessage,
-      });
-    return result;
+    setCharacterHelloCommand: SetCharacterHelloCommand,
+  ): Promise<UpdateWriteOpResult | null> {
+    const { characterId, type, helloMessage } = setCharacterHelloCommand;
+
+    const character = await this.characterRepo.findById(characterId);
+
+    if (!character) {
+      return null;
+    }
+
+    if (type === 'day') {
+      character.helloMessageDay = helloMessage;
+    } else if (type === 'night') {
+      character.helloMessageNight = helloMessage;
+    }
+
+    await this.characterRepo.update(character);
   }
 
   async getCharacterPictureAndName(
@@ -68,39 +107,42 @@ export class CharacterService {
   }
 
   async saveCharacterCreationRequest(
-    userId: Types.ObjectId,
-    characterCreationDTO: CharacterCreationDTO,
+    characterCreationCommand: CharacterCreationCommand,
   ): Promise<CharacterCreation> {
-    const characterCreation = await this.characterCreationRepo.create(
-      userId,
-      characterCreationDTO,
-    );
+    const characterCreation = characterCreationCommand.toDomain();
+    // const characterCreation = await this.characterCreationRepo.create(
+    //   userId,
+    //   characterCreationDTO,
+    // );
 
-    return characterCreation;
+    return await this.characterCreationRepo.create(characterCreation);
   }
 
   async getSubscribedCharacterInfo(
-    user: User,
-  ): Promise<Partial<CharacterDTO>[]> {
-    const subscribedCharacters = user.subscribedCharacters;
+    getSubscribedCharacterInfoCommand: GetSubscribedCharacterInfoCommand,
+  ): Promise<Character[]> {
+    const { subscribedCharacters } = getSubscribedCharacterInfoCommand;
     const characters = await this.characterRepo.findByIds(subscribedCharacters);
-    const characterDTOs = characters.map((character) =>
-      new CharacterDTO(character).toNameAndPic(),
-    );
-    return characterDTOs;
+    // const characterDTOs = characters.map((character) =>
+    //   new CharacterDTO(character).toNameAndPic(),
+    // );
+    return characters;
   }
 
   async saveCharacterReport(
-    characterId: string,
-    userId: Types.ObjectId,
-    complainment: string,
+    saveCharacterReportCommand: SaveCharacterReportCommand,
   ): Promise<CharacterReport> {
-    const characterReport = await this.characterRepo.createCharacterReport(
-      new Types.ObjectId(characterId),
-      userId,
-      complainment,
-    );
+    const characterReport = saveCharacterReportCommand.toDomain();
 
-    return characterReport;
+    if (characterReport.complainment === '')
+      characterReport.complainment = '비어있음';
+
+    // const characterReport = await this.characterRepo.createCharacterReport(
+    //   new Types.ObjectId(characterId),
+    //   userId,
+    //   complainment,
+    // );
+
+    return await this.characterRepo.createCharacterReport(characterReport);
   }
 }

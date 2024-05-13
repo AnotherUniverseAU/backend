@@ -11,6 +11,7 @@ import nicknameModifier from '../global/nickname-modifier';
 import { CancelReasonRepository } from 'src/repository/cancel-reason.repository';
 import { ReplyEventDto } from 'src/global/dto/reply-event.dto';
 import { winstonLogger } from 'src/common/logger/winston.util';
+import { ChatRoomData } from './dto/domain/chatroom';
 
 @Injectable()
 export class UserService {
@@ -207,4 +208,16 @@ export class UserService {
     const users = await this.userRepo.findUsersByQuery(queries);
     return users;
   }
+
+  async setChatRoomData(
+    userId: Types.ObjectId,
+    characterId: Types.ObjectId,
+    chatRoomData: ChatRoomData,
+  ) {
+    const user = await this.userRepo.findById(String(userId));
+    await this.userRepo.setChatRoomData(user, characterId, chatRoomData);
+    await user.save();
+  }
+
+  async getChatRoomData(userId: Types.ObjectId, characterId: Types.ObjectId) {}
 }
