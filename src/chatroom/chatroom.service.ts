@@ -256,8 +256,8 @@ export class ChatRoomService {
     timeToSend: Date,
   ): Promise<UpdateWriteOpResult> {
     const fileBuffer = image.buffer;
-    const koreanTTS = new Date(timeToSend.getTime() + 9 * 60 * 60 * 1000);
-    const timeFormat = moment(koreanTTS).format('YYYY-MM-DD/HH-mm');
+    // const koreanTTS = new Date(timeToSend.getTime() + 9 * 60 * 60 * 1000);
+    const timeFormat = moment(timeToSend).format('YYYY-MM-DD/HH-mm');
     const newImageName = `${characterId}/${timeFormat}_${new Types.ObjectId()}.${image.originalname.split('.')[1]}`;
 
     winstonLogger.log(
