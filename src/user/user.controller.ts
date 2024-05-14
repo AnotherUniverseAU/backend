@@ -7,15 +7,16 @@ import {
   Req,
   HttpCode,
   HttpException,
-  Query,
   UnauthorizedException,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserDocument } from 'src/schemas/user.schema';
 import { UserService } from './user.service';
 import { Request } from 'express';
 import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
+import { SetMarketingMessageRequest } from './dto/request/set-marketing-message-request';
 
 @Controller('user')
 export class UserController {
@@ -121,39 +122,42 @@ export class UserController {
   }
 
   @UseGuards(CommonJwtGuard)
-  @Post('send-marketing-message')
+  @Post('set-send-marketing-message')
   @HttpCode(200)
-  async sendMarkettingMessage(
+  async setSendingMarkettingMessage(
     @Req() req: Request,
-    @Query('queries') queries: string,
-    @Body('marketingMessageTitle') marketingMessageTitle: string,
-    @Body('marketingMessage') marketingMessage: string,
+    @Body() setMarketingMessageRequest: SetMarketingMessageRequest,
   ) {
     const user = req.user as UserDocument;
     if (user.role !== 'admin') {
       throw new UnauthorizedException('Unauthorizzed access');
     }
 
+    const { dateToSend, queries, marketingMessageContent } =
+      setMarketingMessageRequest;
+
+    if (dateToSend <= new Date()) {
+      throw new HttpException('dateToSend is invalid', HttpStatus.BAD_REQUEST);
+    }
+
     let parsedQuery;
-    try {
-      parsedQuery = JSON.parse(queries);
-    } catch (error) {
-      throw new HttpException(
-        'queries are invalid JSON formmat',
-        HttpStatus.BAD_REQUEST,
-      );
+    if (queries == '') {
+      parsedQuery = '';
+    } else {
+      try {
+        parsedQuery = JSON.parse(queries);
+      } catch (error) {
+        throw new HttpException(
+          'queries are invalid JSON formmat',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
     }
 
-    const users = this.userService.sendMarketingMessages(
+    await this.userService.setSendingMarketingMessage(
+      dateToSend,
       parsedQuery,
-      marketingMessageTitle,
-      marketingMessage,
+      marketingMessageContent,
     );
-
-    if (!users) {
-      throw new HttpException('no such users', HttpStatus.BAD_REQUEST);
-    }
-
-    return users;
   }
 }
