@@ -116,7 +116,7 @@ export class ChatRoomUtils {
     //It is split by
     //1. having none .?!, characters at front and
     //2. ending with one or multiple .?!, characters
-    const splitContent = content.match(/[^.?!,]+[.?!,♪]+/g) || [];
+    const splitContent = content.match(/[^.?!,♪]*(?:[.?!,♪]+|$)/g) || [];
     splitContent.forEach((contentPart) => {
       contentPart = contentPart.trim();
       contentPart = contentPart.replace(
@@ -128,7 +128,7 @@ export class ChatRoomUtils {
         },
       );
 
-      chats.push(contentPart);
+      if (contentPart !== '') chats.push(contentPart);
     });
   }
 
