@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Mode } from 'fs';
 import { Model, Types } from 'mongoose';
 import { Character, CharacterReport } from 'src/character/dto/domain';
+import { CharacterReportEntity } from 'src/schemas/character-report.schema';
 import {
   CharacterEntity,
   CharacterDocument,
@@ -14,8 +15,8 @@ export class CharacterRepository {
   constructor(
     @InjectModel(CharacterEntity.name)
     private characterModel: Model<CharacterEntity>,
-    @InjectModel(CharacterReport.name)
-    private characterReportModel: Model<CharacterReport>,
+    @InjectModel(CharacterReportEntity.name)
+    private characterReportModel: Model<CharacterReportEntity>,
   ) {}
 
   //needs paging

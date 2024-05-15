@@ -5,6 +5,7 @@ import { User, UserDocument } from 'src/schemas/user.schema';
 import { OauthDTO } from 'src/oauth/dto/oauth.dto';
 import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 import { ChatRoomData } from 'src/user/dto/domain/chatroom';
+import { User as UserDomain } from 'src/user/dto/domain/user';
 
 @Injectable()
 export class UserRepository {
@@ -118,10 +119,13 @@ export class UserRepository {
   async setChatRoomData(
     user: UserDocument,
     characterId: Types.ObjectId,
-    chatRoomData: ChatRoomData,
+    newChatRoomData: ChatRoomData,
   ) {
-    user.chatRoomDatas.forEach((chd) =>
-      chd.updateFromDomain(characterId, chatRoomData),
+    const promises = Array.from(user.chatRoomDatas).map(
+      async ([, chatRoomData]) =>
+        chatRoomData.updateFromDomain(characterId, newChatRoomData),
     );
+    await Promise.all(promises);
+    await user.save();
   }
 }

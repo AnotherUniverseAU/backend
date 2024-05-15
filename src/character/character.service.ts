@@ -2,9 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Types, UpdateWriteOpResult } from 'mongoose';
 import { CharacterRepository } from 'src/repository/character.repository';
 import { CharacterCreationRepository } from 'src/repository/character-creation.repository';
-import { CharacterDTO } from './dto/character.dto';
 import { Character, CharacterCreation, CharacterReport } from './dto/domain';
-import { UserService } from 'src/user/user.service';
 import nicknameModifier from '../global/nickname-modifier';
 import {
   CharacterCreationCommand,
@@ -13,13 +11,14 @@ import {
   SaveCharacterReportCommand,
 } from './dto/command';
 import { User } from 'src/user/dto/domain/user';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class CharacterService {
   constructor(
     private characterRepo: CharacterRepository,
     private characterCreationRepo: CharacterCreationRepository,
-    private userService: UserService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async getAllCharacters(): Promise<Character[]> {
@@ -37,7 +36,10 @@ export class CharacterService {
     return mainCharacter;
   }
 
-  async getCharacterHello(characterId: Types.ObjectId, user: User) {
+  async getCharacterHello(
+    characterId: Types.ObjectId,
+    user: User,
+  ): Promise<{ userSpecificHello: any[]; character: Character }> {
     const character = await this.characterRepo.findById(characterId);
     const chatRoomData = user.chatRoomDatas.get(characterId.toString());
 
@@ -59,7 +61,12 @@ export class CharacterService {
         : helloMessage[helloMessage.length - 1];
     }
 
-    await this.userService.setChatRoomData(user._id, characterId, chatRoomData);
+    this.eventEmitter.emit(
+      'chatRoomDataUpdate',
+      user._id,
+      characterId,
+      chatRoomData,
+    );
 
     const nickname = chatRoomData.nickname
       ? chatRoomData.nickname
@@ -96,15 +103,15 @@ export class CharacterService {
     await this.characterRepo.update(character);
   }
 
-  async getCharacterPictureAndName(
-    ids: Types.ObjectId[],
-  ): Promise<Partial<CharacterDTO>[]> {
-    const characters = await this.characterRepo.findByIds(ids);
-    const nameAndPic = characters.map((character) =>
-      new CharacterDTO(character).toNameAndPic(),
-    );
-    return nameAndPic;
-  }
+  // async getCharacterPictureAndName(
+  //   ids: Types.ObjectId[],
+  // ): Promise<Partial<CharacterDTO>[]> {
+  //   const characters = await this.characterRepo.findByIds(ids);
+  //   const nameAndPic = characters.map((character) =>
+  //     new CharacterDTO(character).toNameAndPic(),
+  //   );
+  //   return nameAndPic;
+  // }
 
   async saveCharacterCreationRequest(
     characterCreationCommand: CharacterCreationCommand,

@@ -209,6 +209,7 @@ export class UserService {
     return users;
   }
 
+  @OnEvent('chatRoomDataUpdate')
   async setChatRoomData(
     userId: Types.ObjectId,
     characterId: Types.ObjectId,
@@ -216,8 +217,5 @@ export class UserService {
   ) {
     const user = await this.userRepo.findById(String(userId));
     await this.userRepo.setChatRoomData(user, characterId, chatRoomData);
-    await user.save();
   }
-
-  async getChatRoomData(userId: Types.ObjectId, characterId: Types.ObjectId) {}
 }

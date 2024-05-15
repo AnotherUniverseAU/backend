@@ -6,7 +6,6 @@ import {
   UseGuards,
   Req,
   HttpCode,
-  Param,
   HttpException,
   Query,
   UnauthorizedException,

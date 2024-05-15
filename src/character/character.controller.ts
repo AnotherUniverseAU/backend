@@ -57,6 +57,7 @@ export class CharacterController {
   @HttpCode(200)
   async getCharacters() {
     const characters = await this.characterService.getAllCharacters();
+    console.log('characters : ', characters);
     return GetAllCharactersResponse.fromDomain(characters);
 
     // if (characters) {
