@@ -122,6 +122,32 @@ export class UserController {
   }
 
   @UseGuards(CommonJwtGuard)
+  @Get('get-users-by-query')
+  @HttpCode(200)
+  async getUsersByQuery(@Req() req: Request, @Body('queries') queries: string) {
+    const user = req.user as UserDocument;
+    if (user.role !== 'admin') {
+      throw new UnauthorizedException('Unauthorizzed access');
+    }
+
+    let parsedQuery;
+    if (queries == '') {
+      parsedQuery = '';
+    } else {
+      try {
+        parsedQuery = JSON.parse(queries);
+      } catch (error) {
+        throw new HttpException(
+          'queries are invalid JSON formmat',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+
+    return await this.userService.getUsersByQuery(parsedQuery);
+  }
+
+  @UseGuards(CommonJwtGuard)
   @Post('set-send-marketing-message')
   @HttpCode(200)
   async setSendingMarkettingMessage(
