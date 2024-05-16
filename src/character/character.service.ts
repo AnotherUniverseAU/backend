@@ -10,7 +10,7 @@ import {
   SetCharacterHelloCommand,
   SaveCharacterReportCommand,
 } from './dto/command';
-import { User } from 'src/user/dto/domain/user';
+import { User as UserDomain } from 'src/user/dto/domain/user';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
@@ -38,7 +38,7 @@ export class CharacterService {
 
   async getCharacterHello(
     characterId: Types.ObjectId,
-    user: User,
+    user: UserDomain,
   ): Promise<{ userSpecificHello: any[]; character: Character }> {
     const character = await this.characterRepo.findById(characterId);
     const chatRoomData = user.chatRoomDatas.get(characterId.toString());
@@ -78,6 +78,7 @@ export class CharacterService {
     return { userSpecificHello, character };
   }
 
+  //현재 사용안함
   async createCharacter(characterData: any): Promise<Character> {
     const character = await this.characterRepo.create(characterData);
     return character;
@@ -100,7 +101,7 @@ export class CharacterService {
       character.helloMessageNight = helloMessage;
     }
 
-    await this.characterRepo.update(character);
+    return await this.characterRepo.updateHelloMessage(character);
   }
 
   // async getCharacterPictureAndName(

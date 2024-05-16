@@ -1,8 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, SchemaTypes, Types } from 'mongoose';
-import { Character } from 'src/character/dto/domain';
+import { Character as CharacterDomain } from 'src/character/dto/domain';
 
-export type CharacterDocument = HydratedDocument<CharacterEntity>;
+export type CharacterDocument = HydratedDocument<Character>;
 
 @Schema()
 export class UserReference {
@@ -14,7 +14,7 @@ export class UserReference {
 }
 
 @Schema()
-export class CharacterEntity {
+export class Character {
   @Prop({ type: SchemaTypes.ObjectId })
   _id: Types.ObjectId;
 
@@ -72,41 +72,47 @@ export class CharacterEntity {
   @Prop({ type: Boolean, default: false })
   isMain: boolean;
 
-  toDomain() {
-    return new Character(
-      this._id,
-      this.creator,
-      this.creatorWords,
-      this.contributors,
-      this.name,
-      this.title,
-      this.genre,
-      this.hashtags,
-      this.coverImageUrl,
-      this.mainImageUrl,
-      this.likes,
-      this.profilePicUrl,
-      this.helloMessageDay,
-      this.helloMessageNight,
-      this.isMain,
-    );
-  }
+  toDomain: () => CharacterDomain;
 
-  updateFromDomain(character: Character) {
-    this.creatorWords = character.creatorWords;
-    this.contributors = character.contributors;
-    this.name = character.name;
-    this.title = character.title;
-    this.genre = character.genre;
-    this.hashtags = character.hashtags;
-    this.coverImageUrl = character.coverImageUrl;
-    this.mainImageUrl = character.mainImageUrl;
-    this.likes = character.likes;
-    this.profilePicUrl = character.profilePicUrl;
-    this.helloMessageDay = character.helloMessageDay;
-    this.helloMessageNight = character.helloMessageNight;
-    this.isMain = character.isMain;
-  }
+  updateFromDomain: (CharacterDomain) => void;
 }
 
-export const CharacterSchema = SchemaFactory.createForClass(CharacterEntity);
+export const CharacterSchema = SchemaFactory.createForClass(Character);
+
+CharacterSchema.methods.toDomain = function (): CharacterDomain {
+  return new CharacterDomain(
+    this._id,
+    this.creator,
+    this.creatorWords,
+    this.contributors,
+    this.name,
+    this.title,
+    this.genre,
+    this.hashtags,
+    this.coverImageUrl,
+    this.mainImageUrl,
+    this.likes,
+    this.profilePicUrl,
+    this.helloMessageDay,
+    this.helloMessageNight,
+    this.isMain,
+  );
+};
+
+CharacterSchema.methods.updateFromDomain = function (
+  character: CharacterDomain,
+) {
+  this.creatorWords = character.creatorWords;
+  this.contributors = character.contributors;
+  this.name = character.name;
+  this.title = character.title;
+  this.genre = character.genre;
+  this.hashtags = character.hashtags;
+  this.coverImageUrl = character.coverImageUrl;
+  this.mainImageUrl = character.mainImageUrl;
+  this.likes = character.likes;
+  this.profilePicUrl = character.profilePicUrl;
+  this.helloMessageDay = character.helloMessageDay;
+  this.helloMessageNight = character.helloMessageNight;
+  this.isMain = character.isMain;
+};

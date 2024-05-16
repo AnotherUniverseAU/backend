@@ -1,7 +1,4 @@
-import {
-  CharacterEntity,
-  CharacterDocument,
-} from 'src/schemas/character.schema';
+import { Character, CharacterDocument } from 'src/schemas/character.schema';
 
 export class CharacterDTO {
   readonly characterId: string; //캐릭터 식별자
@@ -20,7 +17,7 @@ export class CharacterDTO {
 
   readonly isMain: boolean; //메인 캐릭터 여부
 
-  constructor(character: CharacterEntity) {
+  constructor(character: Character) {
     this.characterId = character._id.toString();
     this.creatorNickname = character.creator.nickname;
     this.creatorWords = character.creatorWords;

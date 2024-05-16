@@ -57,14 +57,12 @@ export class CharacterController {
   @HttpCode(200)
   async getCharacters() {
     const characters = await this.characterService.getAllCharacters();
-    console.log('characters : ', characters);
     return GetAllCharactersResponse.fromDomain(characters);
 
     // if (characters) {
     //   const shortCharacterDTOs = characters.map((character) => {
     //     return new CharacterDTO(character).toShort();
     //   });
-    //   console.log(shortCharacterDTOs);
     //   return { characters: shortCharacterDTOs };
     // } else {
     //   return { characters: [] };
@@ -88,9 +86,18 @@ export class CharacterController {
   async getSubscribedCharacterInfo(@Req() req: Request) {
     const user = req.user as UserDocument;
 
+    const subscribedCharacters = user.subscribedCharacters;
+
+    if (!subscribedCharacters) {
+      throw new HttpException(
+        'subscribedCharacters are empty',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const getSubscribedCharacterInfoCommand =
       GetSubscribedCharacterInfoCommand.fromSubscribedCharacters(
-        user.subscribedCharacters,
+        subscribedCharacters,
       );
 
     const characters = await this.characterService.getSubscribedCharacterInfo(
@@ -169,6 +176,15 @@ export class CharacterController {
       throw new HttpException('unauthorized access', HttpStatus.UNAUTHORIZED);
     }
 
+    const { type } = setCharacterHelloRequest;
+
+    if (type != 'day' && type != 'night') {
+      throw new HttpException(
+        'type must be day or night',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const setCharacterHelloCommand = SetCharacterHelloCommand.fromRequest(
       id,
       setCharacterHelloRequest,
@@ -177,10 +193,6 @@ export class CharacterController {
     const result = await this.characterService.setCharacterHello(
       setCharacterHelloCommand,
     );
-
-    if (!result) {
-      throw new HttpException('invalid Character', 404);
-    }
 
     return SetCharacterHelloResponse.fromResult(
       setCharacterHelloCommand.helloMessage,
