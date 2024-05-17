@@ -134,14 +134,12 @@ export class UserController {
     if (user.role !== 'admin') {
       throw new UnauthorizedException('Unauthorizzed access');
     }
-    // "{\"nickname\": \"영찬\"}"
 
     let parsedQuery;
     if (queries == '') {
       parsedQuery = '';
     } else {
       try {
-        parsedQuery = decodeURIComponent(queries);
         parsedQuery = JSON.parse(queries);
       } catch (error) {
         throw new HttpException(
@@ -178,7 +176,6 @@ export class UserController {
       parsedQuery = '';
     } else {
       try {
-        parsedQuery = decodeURIComponent(queries);
         parsedQuery = JSON.parse(queries);
       } catch (error) {
         throw new HttpException(
