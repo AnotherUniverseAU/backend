@@ -6,8 +6,5 @@ export class SetMarketingMessageRequest {
   readonly dateToSend: Date;
   @IsString()
   @IsNotEmpty()
-  readonly queries: string;
-  @IsString()
-  @IsNotEmpty()
   readonly marketingMessageContent: string;
 }

@@ -10,6 +10,7 @@ import {
   UnauthorizedException,
   HttpStatus,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { UserDocument } from 'src/schemas/user.schema';
 import { UserService } from './user.service';
@@ -17,6 +18,7 @@ import { Request } from 'express';
 import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { SetMarketingMessageRequest } from './dto/request/set-marketing-message-request';
+import { winstonLogger } from 'src/common/logger/winston.util';
 
 @Controller('user')
 export class UserController {
@@ -124,7 +126,10 @@ export class UserController {
   @UseGuards(CommonJwtGuard)
   @Get('get-users-by-query')
   @HttpCode(200)
-  async getUsersByQuery(@Req() req: Request, @Body('queries') queries: string) {
+  async getUsersByQuery(
+    @Req() req: Request,
+    @Query('queries') queries: string,
+  ) {
     const user = req.user as UserDocument;
     if (user.role !== 'admin') {
       throw new UnauthorizedException('Unauthorizzed access');
@@ -138,7 +143,7 @@ export class UserController {
         parsedQuery = JSON.parse(queries);
       } catch (error) {
         throw new HttpException(
-          'queries are invalid JSON formmat',
+          'queries are invalid JSON format',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -152,15 +157,15 @@ export class UserController {
   @HttpCode(200)
   async setSendingMarkettingMessage(
     @Req() req: Request,
+    @Query('queries') queries: string,
     @Body() setMarketingMessageRequest: SetMarketingMessageRequest,
   ) {
     const user = req.user as UserDocument;
     if (user.role !== 'admin') {
-      throw new UnauthorizedException('Unauthorizzed access');
+      throw new UnauthorizedException('Unauthorized access');
     }
 
-    const { dateToSend, queries, marketingMessageContent } =
-      setMarketingMessageRequest;
+    const { dateToSend, marketingMessageContent } = setMarketingMessageRequest;
 
     if (dateToSend <= new Date()) {
       throw new HttpException('dateToSend is invalid', HttpStatus.BAD_REQUEST);
@@ -174,7 +179,7 @@ export class UserController {
         parsedQuery = JSON.parse(queries);
       } catch (error) {
         throw new HttpException(
-          'queries are invalid JSON formmat',
+          'queries are invalid JSON format',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -185,5 +190,10 @@ export class UserController {
       parsedQuery,
       marketingMessageContent,
     );
+
+    winstonLogger.log(
+      `marketting message 예약 / query: ${parsedQuery} / content: ${marketingMessageContent} / time : ${dateToSend}`,
+    );
+    return { isSucess: true };
   }
 }

@@ -10,6 +10,7 @@ import { FirebaseService } from 'src/firebase/firebase.service';
 import nicknameModifier from '../global/nickname-modifier';
 import { CancelReasonRepository } from 'src/repository/cancel-reason.repository';
 import { winstonLogger } from 'src/common/logger/winston.util';
+import { ChatRoomData } from './dto/domain/chatroom';
 
 @Injectable()
 export class UserService {
@@ -259,5 +260,15 @@ export class UserService {
         marketingMessageContent,
       );
     }, timeToSend - currentTime);
+  }
+
+  @OnEvent('chatRoomDataUpdate')
+  async setChatRoomData(
+    userId: Types.ObjectId,
+    characterId: Types.ObjectId,
+    chatRoomData: ChatRoomData,
+  ) {
+    const user = await this.userRepo.findById(String(userId));
+    await this.userRepo.setChatRoomData(user, characterId, chatRoomData);
   }
 }

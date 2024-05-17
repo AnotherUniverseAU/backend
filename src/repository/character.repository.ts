@@ -1,65 +1,91 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Mode } from 'fs';
-import { Model, Types } from 'mongoose';
-import { CharacterReport } from 'src/schemas/character-report.schema';
+import { Model, Types, UpdateWriteOpResult } from 'mongoose';
+import {
+  Character as CharacterDomain,
+  CharacterReport,
+} from 'src/character/dto/domain';
+import { CharacterReportEntity } from 'src/schemas/character-report.schema';
 import { Character, CharacterDocument } from 'src/schemas/character.schema';
 import { User } from 'src/schemas/user.schema';
 
 @Injectable()
 export class CharacterRepository {
   constructor(
-    @InjectModel(Character.name) private characterModel: Model<Character>,
-    @InjectModel(CharacterReport.name)
-    private characterReportModel: Model<CharacterReport>,
+    @InjectModel(Character.name)
+    private characterModel: Model<Character>,
+    @InjectModel(CharacterReportEntity.name)
+    private characterReportModel: Model<CharacterReportEntity>,
   ) {}
 
   //needs paging
-  async findAll(): Promise<CharacterDocument[]> {
+  async findAll(): Promise<CharacterDomain[]> {
     const characters = await this.characterModel.find({});
-    return characters;
+    return characters.map((character) => character.toDomain());
   }
 
-  async findById(id: string): Promise<CharacterDocument> {
+  async findById(id: string | Types.ObjectId): Promise<CharacterDomain> {
     const character = await this.characterModel.findById(id);
-    return character;
+    return character.toDomain();
   }
 
-  async findByIds(ids: Types.ObjectId[]): Promise<CharacterDocument[]> {
+  async findByIds(ids: Types.ObjectId[]): Promise<CharacterDomain[]> {
     const characters = await this.characterModel
       .find({ _id: { $in: ids } })
       .exec();
-    return characters;
+
+    return characters.map((character) => character.toDomain());
   }
 
-  async findMainCharacter(): Promise<CharacterDocument> {
+  async findMainCharacter(): Promise<CharacterDomain> {
     const mainCharacter = await this.characterModel.findOne({ isMain: true });
-    return mainCharacter;
+    return mainCharacter.toDomain();
   }
 
+  //현재 사용안함
   async create(characterData: any) {
     const newInstance = new this.characterModel(characterData);
     return await newInstance.save();
   }
 
-  async updateById(characterId: string, payload: any) {
+  // characterEntity.updateFromDomain(character);
+  // UpdateWriteOpResult 타입을 리턴해야해서 updateFromDomain보류
+  async updateHelloMessage(
+    character: CharacterDomain,
+  ): Promise<UpdateWriteOpResult> {
+    const { helloMessageDay, helloMessageNight } = character;
     const result = await this.characterModel.updateOne(
-      { _id: new Types.ObjectId(characterId) },
-      { $set: payload },
+      { _id: new Types.ObjectId(character._id) },
+      {
+        $set: {
+          helloMessageDay: helloMessageDay,
+          helloMessageNight: helloMessageNight,
+        },
+      },
     );
     return result;
   }
 
+  //현재 사용안함
+  async update(character: CharacterDomain) {
+    const characterEntity = await this.characterModel.findById(character._id);
+    characterEntity.updateFromDomain(character);
+    characterEntity.save();
+  }
+
   async createCharacterReport(
-    characterId: Types.ObjectId,
-    userId: Types.ObjectId,
-    complainment: string,
+    characterReport: CharacterReport,
   ): Promise<CharacterReport> {
     const newReport = await this.characterReportModel.create({
-      characterId,
-      reporterId: userId,
-      complainment,
+      characterReport,
     });
+
+    // const newReport = await this.characterReportModel.create({
+    //   characterId,
+    //   reporterId: userId,
+    //   complainment,
+    // });
 
     return newReport;
   }
