@@ -5,6 +5,5 @@ export class PostComplainRequest {
   @IsNotEmpty()
   readonly isRejected: boolean;
   @IsString()
-  @IsNotEmpty()
   readonly complainment: string;
 }

@@ -11,7 +11,7 @@ import {
 } from 'src/schemas/character-creation.schema';
 import { CharacterCreationRepository } from 'src/repository/character-creation.repository';
 import {
-  CharacterReportEntity,
+  CharacterReport,
   CharacterReportSchema,
 } from 'src/schemas/character-report.schema';
 
@@ -21,7 +21,7 @@ import {
     MongooseModule.forFeature([
       { name: Character.name, schema: CharacterSchema },
       { name: CharacterCreationEntity.name, schema: CharacterCreationSchema },
-      { name: CharacterReportEntity.name, schema: CharacterReportSchema },
+      { name: CharacterReport.name, schema: CharacterReportSchema },
     ]),
   ],
   controllers: [CharacterController],

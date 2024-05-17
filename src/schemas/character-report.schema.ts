@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 
-export type CharacterReportDocument = HydratedDocument<CharacterReportEntity>;
+export type CharacterReportDocument = HydratedDocument<CharacterReport>;
 
 @Schema()
-export class CharacterReportEntity {
+export class CharacterReport {
   @Prop({ type: Types.ObjectId, required: true, ref: 'Character' })
   characterId: Types.ObjectId;
 
@@ -15,6 +15,5 @@ export class CharacterReportEntity {
   complainment: string;
 }
 
-export const CharacterReportSchema = SchemaFactory.createForClass(
-  CharacterReportEntity,
-);
+export const CharacterReportSchema =
+  SchemaFactory.createForClass(CharacterReport);

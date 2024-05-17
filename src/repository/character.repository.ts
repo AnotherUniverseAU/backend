@@ -4,19 +4,18 @@ import { Mode } from 'fs';
 import { Model, Types, UpdateWriteOpResult } from 'mongoose';
 import {
   Character as CharacterDomain,
-  CharacterReport,
+  CharacterReport as CharacterReportDomain,
 } from 'src/character/dto/domain';
-import { CharacterReportEntity } from 'src/schemas/character-report.schema';
+import { CharacterReport } from 'src/schemas/character-report.schema';
 import { Character, CharacterDocument } from 'src/schemas/character.schema';
-import { User } from 'src/schemas/user.schema';
 
 @Injectable()
 export class CharacterRepository {
   constructor(
     @InjectModel(Character.name)
     private characterModel: Model<Character>,
-    @InjectModel(CharacterReportEntity.name)
-    private characterReportModel: Model<CharacterReportEntity>,
+    @InjectModel(CharacterReport.name)
+    private characterReportModel: Model<CharacterReport>,
   ) {}
 
   //needs paging
@@ -75,11 +74,9 @@ export class CharacterRepository {
   }
 
   async createCharacterReport(
-    characterReport: CharacterReport,
-  ): Promise<CharacterReport> {
-    const newReport = await this.characterReportModel.create({
-      characterReport,
-    });
+    characterReport: CharacterReportDomain,
+  ): Promise<CharacterReportDomain> {
+    const newReport = await this.characterReportModel.create(characterReport);
 
     // const newReport = await this.characterReportModel.create({
     //   characterId,

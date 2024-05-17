@@ -141,10 +141,6 @@ export class CharacterService {
     saveCharacterReportCommand: SaveCharacterReportCommand,
   ): Promise<CharacterReport> {
     const characterReport = saveCharacterReportCommand.toDomain();
-
-    if (characterReport.complainment === '')
-      characterReport.complainment = '비어있음';
-
     // const characterReport = await this.characterRepo.createCharacterReport(
     //   new Types.ObjectId(characterId),
     //   userId,
