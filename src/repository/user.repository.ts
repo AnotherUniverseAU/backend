@@ -108,8 +108,7 @@ export class UserRepository {
     return updatedUser;
   }
 
-  async findUsersByQuery(queries: string): Promise<UserDocument[]> {
-    const query = JSON.parse(queries);
+  async findUsersByQuery(query: any): Promise<UserDocument[]> {
     const users = await this.userModel.find(query);
     return users;
   }

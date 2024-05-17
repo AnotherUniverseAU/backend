@@ -2,14 +2,13 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { User, UserDocument } from 'src/schemas/user.schema';
 import { UserRepository } from 'src/repository/user.repository';
 import { userDataDTO } from './dto/userData.dto';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 import { Types } from 'mongoose';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import nicknameModifier from '../global/nickname-modifier';
 import { CancelReasonRepository } from 'src/repository/cancel-reason.repository';
-import { ReplyEventDto } from 'src/global/dto/reply-event.dto';
 import { winstonLogger } from 'src/common/logger/winston.util';
 
 @Injectable()
@@ -18,6 +17,7 @@ export class UserService {
     private userRepo: UserRepository,
     private firebaseService: FirebaseService,
     private cancelRepo: CancelReasonRepository,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   getUserInfo(user: UserDocument): userDataDTO {
@@ -203,8 +203,61 @@ export class UserService {
     );
   }
 
-  async getUserByQueries(queries: string) {
-    const users = await this.userRepo.findUsersByQuery(queries);
-    return users;
+  async getUsersByQuery(query: any): Promise<UserDocument[]> {
+    return await this.userRepo.findUsersByQuery(query);
+  }
+
+  @OnEvent('sendMarketingMessage')
+  async sendMarketingMessages(query: any, marketingMessageContent: string) {
+    const users = await this.userRepo.findUsersByQuery(query);
+
+    const marketingMessageTitle = 'AU';
+
+    await Promise.all(
+      users.map(async (user) => {
+        let isUserActive: boolean;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (user.lastAccess < yesterday) isUserActive = false;
+        else isUserActive = true;
+
+        // 휴면 유저라면 return
+        if (!isUserActive) {
+          winstonLogger.log(
+            `휴면 계정입니다. : ${user._id}, 마지막 접속 : ${user.lastAccess}`,
+          );
+          return;
+        } else if (!user.fcmToken) {
+          winstonLogger.error(
+            `fcm토큰이 없어 메시지를 보내지 못했습니다 : ${user._id}`,
+          );
+          return;
+        }
+
+        await this.firebaseService.sendUserNotification(
+          user._id.toString(),
+          marketingMessageTitle,
+          marketingMessageContent,
+          user.fcmToken,
+        );
+      }),
+    );
+  }
+
+  async setSendingMarketingMessage(
+    dateToSend: Date,
+    query: any,
+    marketingMessageContent: string,
+  ) {
+    const currentTime = new Date().getTime();
+    const timeToSend = dateToSend.getTime();
+
+    setTimeout(() => {
+      this.eventEmitter.emit(
+        'sendMarketingMessage',
+        query,
+        marketingMessageContent,
+      );
+    }, timeToSend - currentTime);
   }
 }

@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CharacterChatRepository } from 'src/repository/character-chat.repository';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
@@ -12,8 +12,6 @@ import { ConfigService } from '@nestjs/config';
 import { Types, UpdateWriteOpResult } from 'mongoose';
 import { UserReply } from 'src/schemas/chat-schema/user-reply.schema';
 import nicknameModifier from '../global/nickname-modifier';
-import { UserDocument } from 'src/schemas/user.schema';
-import { ReplyEventDto } from 'src/global/dto/reply-event.dto';
 import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 import { UserRepository } from 'src/repository/user.repository';
 import { FirebaseService } from 'src/firebase/firebase.service';
