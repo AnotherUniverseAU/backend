@@ -6,16 +6,17 @@ import {
   UseGuards,
   Req,
   HttpCode,
-  Param,
   HttpException,
-  Query,
   UnauthorizedException,
+  HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserDocument } from 'src/schemas/user.schema';
 import { UserService } from './user.service';
 import { Request } from 'express';
 import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
+import { SetMarketingMessageRequest } from './dto/request/set-marketing-message-request';
 
 @Controller('user')
 export class UserController {
@@ -121,18 +122,68 @@ export class UserController {
   }
 
   @UseGuards(CommonJwtGuard)
-  @Post('send-marketing-message')
+  @Get('get-users-by-query')
   @HttpCode(200)
-  async sendMarkettingMessage(
+  async getUsersByQuery(@Req() req: Request, @Body('queries') queries: string) {
+    const user = req.user as UserDocument;
+    if (user.role !== 'admin') {
+      throw new UnauthorizedException('Unauthorizzed access');
+    }
+
+    let parsedQuery;
+    if (queries == '') {
+      parsedQuery = '';
+    } else {
+      try {
+        parsedQuery = JSON.parse(queries);
+      } catch (error) {
+        throw new HttpException(
+          'queries are invalid JSON formmat',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+
+    return await this.userService.getUsersByQuery(parsedQuery);
+  }
+
+  @UseGuards(CommonJwtGuard)
+  @Post('set-send-marketing-message')
+  @HttpCode(200)
+  async setSendingMarkettingMessage(
     @Req() req: Request,
-    @Query('queries') queries: string,
+    @Body() setMarketingMessageRequest: SetMarketingMessageRequest,
   ) {
     const user = req.user as UserDocument;
     if (user.role !== 'admin') {
       throw new UnauthorizedException('Unauthorizzed access');
     }
 
-    const users = this.userService.getUserByQueries(queries);
-    return users;
+    const { dateToSend, queries, marketingMessageContent } =
+      setMarketingMessageRequest;
+
+    if (dateToSend <= new Date()) {
+      throw new HttpException('dateToSend is invalid', HttpStatus.BAD_REQUEST);
+    }
+
+    let parsedQuery;
+    if (queries == '') {
+      parsedQuery = '';
+    } else {
+      try {
+        parsedQuery = JSON.parse(queries);
+      } catch (error) {
+        throw new HttpException(
+          'queries are invalid JSON formmat',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+
+    await this.userService.setSendingMarketingMessage(
+      dateToSend,
+      parsedQuery,
+      marketingMessageContent,
+    );
   }
 }
