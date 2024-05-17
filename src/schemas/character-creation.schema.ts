@@ -1,9 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-export type CharacterCreationDocument = HydratedDocument<CharacterCreation>;
+export type CharacterCreationDocument =
+  HydratedDocument<CharacterCreationEntity>;
 
 @Schema()
-export class CharacterCreation {
+export class CharacterCreationEntity {
   @Prop({ type: Types.ObjectId, required: true, ref: 'User' })
   creator: Types.ObjectId;
 
@@ -47,5 +48,6 @@ export class CharacterCreation {
   email: string;
 }
 
-export const CharacterCreationSchema =
-  SchemaFactory.createForClass(CharacterCreation);
+export const CharacterCreationSchema = SchemaFactory.createForClass(
+  CharacterCreationEntity,
+);

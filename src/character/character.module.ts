@@ -6,12 +6,12 @@ import { CharacterService } from './character.service';
 import { CharacterRepository } from 'src/repository/character.repository';
 import { AuthModule } from 'src/auth/auth.module';
 import {
-  CharacterCreation,
+  CharacterCreationEntity,
   CharacterCreationSchema,
 } from 'src/schemas/character-creation.schema';
 import { CharacterCreationRepository } from 'src/repository/character-creation.repository';
 import {
-  CharacterReport,
+  CharacterReportEntity,
   CharacterReportSchema,
 } from 'src/schemas/character-report.schema';
 
@@ -20,8 +20,8 @@ import {
     AuthModule,
     MongooseModule.forFeature([
       { name: Character.name, schema: CharacterSchema },
-      { name: CharacterCreation.name, schema: CharacterCreationSchema },
-      { name: CharacterReport.name, schema: CharacterReportSchema },
+      { name: CharacterCreationEntity.name, schema: CharacterCreationSchema },
+      { name: CharacterReportEntity.name, schema: CharacterReportSchema },
     ]),
   ],
   controllers: [CharacterController],

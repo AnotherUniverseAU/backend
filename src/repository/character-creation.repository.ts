@@ -1,23 +1,29 @@
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { CharacterCreationDTO } from 'src/character/dto/character-creation.dto';
-import { CharacterCreation } from 'src/schemas/character-creation.schema';
+import { CharacterCreation } from 'src/character/dto/domain';
+import { CharacterCreationEntity } from 'src/schemas/character-creation.schema';
 
 export class CharacterCreationRepository {
   constructor(
-    @InjectModel(CharacterCreation.name)
-    private characterCreationModel: Model<CharacterCreation>,
+    @InjectModel(CharacterCreationEntity.name)
+    private characterCreationModel: Model<CharacterCreationEntity>,
   ) {}
 
   async create(
-    userId: Types.ObjectId,
-    characterCreationDTO: CharacterCreationDTO,
+    characterCreation: CharacterCreation,
   ): Promise<CharacterCreation> {
-    const characterCreation = new this.characterCreationModel({
-      creator: userId,
-      ...characterCreationDTO,
-    });
-    await characterCreation.save();
+    await new this.characterCreationModel({ characterCreation }).save();
     return characterCreation;
   }
+
+  // async create(
+  //   characterCreation: CharacterCreation,
+  // ): Promise<CharacterCreation> {
+  //   const characterCreation = new this.characterCreationModel({
+  //     creator: userId,
+  //     ...characterCreationDTO,
+  //   });
+  //   await characterCreation.save();
+  //   return characterCreation;
+  // }
 }

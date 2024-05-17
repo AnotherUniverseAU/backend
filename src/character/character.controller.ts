@@ -16,14 +16,32 @@ import { CharacterService } from './character.service';
 import { CommonJwtGuard } from 'src/auth/common-jwt.guard';
 import { Request } from 'express';
 import { UserDocument } from 'src/schemas/user.schema';
-import { CharacterDTO } from './dto/character.dto';
 import { Types } from 'mongoose';
-import { CharacterCreationDTO } from './dto/character-creation.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { Character } from 'src/schemas/character.schema';
-import nicknameModifier from '../global/nickname-modifier';
 import { winstonLogger } from 'src/common/logger/winston.util';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Character } from './dto/domain';
+import {
+  CharacterCreationRequest,
+  PostComplainRequest,
+  SetCharacterHelloRequest,
+} from './dto/request';
+import {
+  CharacterCreationCommand,
+  GetSubscribedCharacterInfoCommand,
+  SaveCharacterReportCommand,
+  SetCharacterHelloCommand,
+} from './dto/command';
+import {
+  CharacterCreationResponse,
+  GetAllCharactersResponse,
+  GetCharacterInfoReponse,
+  GetChatRoomInfoResponse,
+  GetListMainResponse,
+  GetSubscribedCharacterInfoResponse,
+  SetCharacterHelloResponse,
+} from './dto/response';
+import { PostComplainResponse } from './dto/response/post-complain.response';
 
 @Controller('character')
 export class CharacterController {
@@ -39,16 +57,16 @@ export class CharacterController {
   @HttpCode(200)
   async getCharacters() {
     const characters = await this.characterService.getAllCharacters();
+    return GetAllCharactersResponse.fromDomain(characters);
 
-    if (characters) {
-      const shortCharacterDTOs = characters.map((character) => {
-        return new CharacterDTO(character).toShort();
-      });
-      console.log(shortCharacterDTOs);
-      return { characters: shortCharacterDTOs };
-    } else {
-      return { characters: [] };
-    }
+    // if (characters) {
+    //   const shortCharacterDTOs = characters.map((character) => {
+    //     return new CharacterDTO(character).toShort();
+    //   });
+    //   return { characters: shortCharacterDTOs };
+    // } else {
+    //   return { characters: [] };
+    // }
   }
 
   @UseGuards(CommonJwtGuard)
@@ -56,8 +74,10 @@ export class CharacterController {
   @HttpCode(200)
   async getListMain() {
     const mainCharacter = await this.characterService.getMainCharacter();
-    const characterDTO = new CharacterDTO(mainCharacter);
-    return { mainCharacter: characterDTO.toShort() };
+    return GetListMainResponse.fromDomain(mainCharacter);
+
+    // const characterDTO = new CharacterDTO(mainCharacter);
+    // return { mainCharacter: characterDTO.toShort() };
   }
 
   @UseGuards(CommonJwtGuard)
@@ -65,10 +85,27 @@ export class CharacterController {
   @HttpCode(200)
   async getSubscribedCharacterInfo(@Req() req: Request) {
     const user = req.user as UserDocument;
-    const characterDtos =
-      await this.characterService.getSubscribedCharacterInfo(user);
 
-    return { characters: characterDtos };
+    const subscribedCharacters = user.subscribedCharacters;
+
+    if (!subscribedCharacters) {
+      throw new HttpException(
+        'subscribedCharacters are empty',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const getSubscribedCharacterInfoCommand =
+      GetSubscribedCharacterInfoCommand.fromSubscribedCharacters(
+        subscribedCharacters,
+      );
+
+    const characters = await this.characterService.getSubscribedCharacterInfo(
+      getSubscribedCharacterInfoCommand,
+    );
+
+    return GetSubscribedCharacterInfoResponse.fromDomain(characters);
+    // return { characters: characterDtos };
   }
 
   @UseGuards(CommonJwtGuard)
@@ -83,8 +120,9 @@ export class CharacterController {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
     if (character) {
-      const characterDTO = new CharacterDTO(character);
-      return { isNew: user.isNew, character: characterDTO };
+      return GetCharacterInfoReponse.fromDomain(user.isNew, character);
+      // const characterDTO = new CharacterDTO(character);
+      // return { isNew: user.isNew, character: characterDTO };
     } else {
       throw new HttpException('no such character', HttpStatus.BAD_REQUEST);
     }
@@ -98,50 +136,28 @@ export class CharacterController {
     if (!user.subscribedCharacters.includes(new Types.ObjectId(id))) {
       throw new HttpException('user not subscribed to character', 400);
     }
-    // TODO: 이거 서비스 로직으로 내려야함
 
-    const helloMessageSet = await this.characterService.getCharacterHello(id);
-    const chatRoomData = user.chatRoomDatas.get(id);
+    const { userSpecificHello, character } =
+      await this.characterService.getCharacterHello(
+        new Types.ObjectId(id),
+        user.toDomain(),
+      );
 
-    let helloMessage: string[];
-
-    const subscriptionStartTimeLocal = chatRoomData.createdDate.getTime() + 9;
-    if (subscriptionStartTimeLocal > 2 && subscriptionStartTimeLocal < 7)
-      helloMessage = helloMessageSet.helloMessageNight;
-    else helloMessage = helloMessageSet.helloMessageDay;
-
-    //update chatRoomData => 마지막 채팅, 안 읽은 채팅 수, 마지막 채팅 시간
-
-    if (!chatRoomData.lastChatDate) {
-      chatRoomData.lastChatDate = new Date();
-      chatRoomData.unreadCounts = 0;
-      chatRoomData.lastAccess = new Date();
-      chatRoomData.lastChat = helloMessage[helloMessage.length - 1].includes(
-        'https:',
-      )
-        ? '사진'
-        : helloMessage[helloMessage.length - 1];
-    }
-
-    user.chatRoomDatas.set(id, chatRoomData);
-    await user.save();
-
-    const nickname = chatRoomData.nickname
-      ? chatRoomData.nickname
-      : user.nickname;
-    const userSpecificHello = helloMessage.map((chat) => {
-      return nicknameModifier(nickname, chat);
-    });
+    const { _id, helloMessageDay, helloMessageNight } = character;
 
     if (userSpecificHello) {
       return {
-        characterId: helloMessageSet.characterId,
+        characterId: id,
         helloMessage: userSpecificHello,
       };
     } else {
       winstonLogger.warn("no such character's hello message", {
         user,
-        helloMessageSet,
+        helloMessageSet: {
+          characterId: _id,
+          helloMessageDay,
+          helloMessageNight,
+        },
       });
       throw new HttpException('no such character', HttpStatus.BAD_REQUEST);
     }
@@ -153,19 +169,35 @@ export class CharacterController {
   async setCharacterHello(
     @Req() req: Request,
     @Param('id') id: string,
-    @Body('helloMessage') helloMessage: string[],
-    @Body('type') type: string,
+    @Body() setCharacterHelloRequest: SetCharacterHelloRequest,
   ) {
     const user = req.user as UserDocument;
     if (user.role != 'admin') {
       throw new HttpException('unauthorized access', HttpStatus.UNAUTHORIZED);
     }
-    const result = await this.characterService.setCharacterHello(
+
+    const { type } = setCharacterHelloRequest;
+
+    if (type != 'day' && type != 'night') {
+      throw new HttpException(
+        'type must be day or night',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const setCharacterHelloCommand = SetCharacterHelloCommand.fromRequest(
       id,
-      helloMessage,
-      type,
+      setCharacterHelloRequest,
     );
-    return { message: 'hello message set', ...helloMessage, result };
+
+    const result = await this.characterService.setCharacterHello(
+      setCharacterHelloCommand,
+    );
+
+    return SetCharacterHelloResponse.fromResult(
+      setCharacterHelloCommand.helloMessage,
+      result,
+    );
   }
 
   @UseGuards(CommonJwtGuard)
@@ -175,15 +207,24 @@ export class CharacterController {
   async requestCharacterCreation(
     @Req() req: Request,
     @UploadedFile() images: Array<Express.Multer.File>,
-    @Body() characterCreationDTO: CharacterCreationDTO,
+    @Body() characterCreationRequest: CharacterCreationRequest,
   ) {
     const user = req.user as UserDocument;
-    const result = await this.characterService.saveCharacterCreationRequest(
-      user._id,
-      characterCreationDTO,
+    const characterCreationCommand = CharacterCreationCommand.fromRequest(
+      user.id,
+      characterCreationRequest,
     );
+    const characterCreation =
+      await this.characterService.saveCharacterCreationRequest(
+        characterCreationCommand,
+      );
 
-    return result;
+    return CharacterCreationResponse.fromDomain(characterCreation);
+    // const result = await this.characterService.saveCharacterCreationRequest(
+    //   user._id,
+    //   characterCreationDTO,
+    // );
+    // return result;
   }
 
   @UseGuards(CommonJwtGuard)
@@ -191,12 +232,15 @@ export class CharacterController {
   @HttpCode(200)
   async getChatRoomInfo(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as UserDocument;
-    const chatRoomData = user.chatRoomDatas.get(id);
+
+    //Todo : user refactoring후 수정
+    const chatRoomData = user.chatRoomDatas.get(id).toDomain();
+
     if (chatRoomData) {
       const character = await this.characterService.getCharacterInfo(id);
-      const { profilePicUrl, name } = character;
-
-      return { profilePicUrl, name, ...chatRoomData };
+      return GetChatRoomInfoResponse.fromDomain(character, chatRoomData);
+      // const { profilePicUrl, name } = character;
+      // return { profilePicUrl, name, ...chatRoomData };
     } else {
       throw new HttpException('no such chatroom', HttpStatus.BAD_REQUEST);
     }
@@ -208,19 +252,20 @@ export class CharacterController {
   async postComplain(
     @Req() req: Request,
     @Param('characterId') characterId: string,
-    @Body('isRejected') isRejected: boolean,
-    @Body('complainment') complainment: string,
+    @Body() postComplainRequest: PostComplainRequest,
   ) {
     const user = req.user as UserDocument;
 
-    let complaint: string;
-    if (complainment === '') complaint = '비어있음';
-    else complaint = complainment;
+    const { complainment, isRejected } = postComplainRequest;
 
-    const result = await this.characterService.saveCharacterReport(
+    const saveCharacterReportCommand = SaveCharacterReportCommand.fromRequest(
       characterId,
-      user._id,
-      complaint,
+      user.id,
+      complainment,
+    );
+
+    const characterReport = await this.characterService.saveCharacterReport(
+      saveCharacterReportCommand,
     );
 
     // user service, subscription에서 분기 처리
@@ -228,6 +273,6 @@ export class CharacterController {
     if (isRejected === true)
       this.eventEmitter.emit('reject-character', user._id, characterId);
 
-    return result;
+    return PostComplainResponse.fromDomain(characterReport);
   }
 }
