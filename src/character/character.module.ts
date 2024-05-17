@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Character, CharacterSchema } from 'src/schemas/character.schema';
+import { CharacterEntity, CharacterSchema } from 'src/schemas/character.schema';
 import { CharacterController } from './character.controller';
 import { CharacterService } from './character.service';
 import { CharacterRepository } from 'src/repository/character.repository';
@@ -11,7 +11,7 @@ import {
 } from 'src/schemas/character-creation.schema';
 import { CharacterCreationRepository } from 'src/repository/character-creation.repository';
 import {
-  CharacterReport,
+  CharacterReportEntity,
   CharacterReportSchema,
 } from 'src/schemas/character-report.schema';
 
@@ -19,9 +19,9 @@ import {
   imports: [
     AuthModule,
     MongooseModule.forFeature([
-      { name: Character.name, schema: CharacterSchema },
+      { name: CharacterEntity.name, schema: CharacterSchema },
       { name: CharacterCreationEntity.name, schema: CharacterCreationSchema },
-      { name: CharacterReport.name, schema: CharacterReportSchema },
+      { name: CharacterReportEntity.name, schema: CharacterReportSchema },
     ]),
   ],
   controllers: [CharacterController],

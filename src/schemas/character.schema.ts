@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, SchemaTypes, Types } from 'mongoose';
 import { Character as CharacterDomain } from 'src/character/dto/domain';
 
-export type CharacterDocument = HydratedDocument<Character>;
+export type CharacterDocument = HydratedDocument<CharacterEntity>;
 
 @Schema()
 export class UserReference {
@@ -13,8 +13,8 @@ export class UserReference {
   nickname: string;
 }
 
-@Schema()
-export class Character {
+@Schema({ collection: 'characters' })
+export class CharacterEntity {
   @Prop({ type: SchemaTypes.ObjectId })
   _id: Types.ObjectId;
 
@@ -77,7 +77,7 @@ export class Character {
   updateFromDomain: (CharacterDomain) => void;
 }
 
-export const CharacterSchema = SchemaFactory.createForClass(Character);
+export const CharacterSchema = SchemaFactory.createForClass(CharacterEntity);
 
 CharacterSchema.methods.toDomain = function (): CharacterDomain {
   return new CharacterDomain(

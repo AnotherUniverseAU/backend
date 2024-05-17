@@ -6,16 +6,19 @@ import {
   Character as CharacterDomain,
   CharacterReport as CharacterReportDomain,
 } from 'src/character/dto/domain';
-import { CharacterReport } from 'src/schemas/character-report.schema';
-import { Character, CharacterDocument } from 'src/schemas/character.schema';
+import { CharacterReportEntity } from 'src/schemas/character-report.schema';
+import {
+  CharacterEntity,
+  CharacterDocument,
+} from 'src/schemas/character.schema';
 
 @Injectable()
 export class CharacterRepository {
   constructor(
-    @InjectModel(Character.name)
-    private characterModel: Model<Character>,
-    @InjectModel(CharacterReport.name)
-    private characterReportModel: Model<CharacterReport>,
+    @InjectModel(CharacterEntity.name)
+    private characterModel: Model<CharacterEntity>,
+    @InjectModel(CharacterReportEntity.name)
+    private characterReportModel: Model<CharacterReportEntity>,
   ) {}
 
   //needs paging
