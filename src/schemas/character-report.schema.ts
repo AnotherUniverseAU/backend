@@ -3,7 +3,7 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type CharacterReportDocument = HydratedDocument<CharacterReportEntity>;
 
-@Schema()
+@Schema({ collection: 'characterreports' })
 export class CharacterReportEntity {
   @Prop({ type: Types.ObjectId, required: true, ref: 'Character' })
   characterId: Types.ObjectId;

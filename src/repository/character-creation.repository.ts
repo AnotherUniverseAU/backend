@@ -12,7 +12,8 @@ export class CharacterCreationRepository {
   async create(
     characterCreation: CharacterCreation,
   ): Promise<CharacterCreation> {
-    await new this.characterCreationModel({ characterCreation }).save();
+    const createdDocument = new this.characterCreationModel(characterCreation);
+    await createdDocument.save();
     return characterCreation;
   }
 
