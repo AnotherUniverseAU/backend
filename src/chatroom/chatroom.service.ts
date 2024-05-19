@@ -131,14 +131,16 @@ export class ChatRoomService implements OnModuleInit {
     replyChatLogs.map((characterChat) => {
       const timeToSend = characterChat.timeToSend.getTime();
       const currentTime = new Date().getTime();
-      setTimeout(
-        () => {
-          //this goes to user domain currently
-          const type = 'reply';
-          this.eventEmitter.emit('broadcast', characterChat, type);
-        },
-        timeToSend - currentTime + 30 * 60 * 1000,
-      );
+      if (characterChat.reply.length > 0) {
+        setTimeout(
+          () => {
+            //this goes to user domain currently
+            const type = 'reply';
+            this.eventEmitter.emit('broadcast', characterChat, type);
+          },
+          timeToSend - currentTime + 30 * 60 * 1000,
+        );
+      }
     });
   }
 
