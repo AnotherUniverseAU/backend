@@ -153,8 +153,13 @@ export class UserService {
 
         // type(chat, reply)에 따른 fcm 알림 내용 설정
         let textListToSend: string[];
-        if (type === 'chat') textListToSend = content;
-        else textListToSend = reply;
+        if (type === 'chat') {
+          console.log('it is content : ', content);
+          textListToSend = content;
+        } else {
+          console.log('it is reply : ', reply);
+          textListToSend = reply;
+        }
 
         const userSpecificChat = textListToSend.map((chat) => {
           if (chat.includes('https://')) return '캐릭터가 사진을 보냈습니다';

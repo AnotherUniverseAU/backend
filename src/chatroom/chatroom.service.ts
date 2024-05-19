@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { CharacterChatRepository } from 'src/repository/character-chat.repository';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
 import { ChatCreationDTO } from './dto/chat-creation.dto';
@@ -18,7 +18,7 @@ import { FirebaseService } from 'src/firebase/firebase.service';
 import { winstonLogger } from 'src/common/logger/winston.util';
 import * as moment from 'moment-timezone';
 @Injectable()
-export class ChatRoomService {
+export class ChatRoomService implements OnModuleInit {
   private containerName: string;
   private blobServiceClient: BlobServiceClient;
 
@@ -39,19 +39,45 @@ export class ChatRoomService {
     );
   }
 
+  onModuleInit() {
+    this.checkPastChatTimeToSend();
+  }
+
+  async checkPastChatTimeToSend() {
+    const currentTime = new Date();
+    const prev30Min = new Date(currentTime.getTime() - 30 * 60 * 1000);
+
+    const pastChats = await this.characterChatRepo.findBetween(
+      prev30Min,
+      currentTime,
+    );
+
+    if (pastChats) {
+      this.scheduleSendOnlyReplys(pastChats);
+      winstonLogger.log('send prev5Min ~ current chats', pastChats);
+    }
+
+    return pastChats;
+  }
+
   //check every hour
   @Cron('0 * * * *')
   async checkChatTimeToSend() {
-    const startOfHour = new Date();
-    winstonLogger.log('finding chat to send at time');
-    const hourCharacterChats =
-      await this.characterChatRepo.findByHour(startOfHour);
+    const currentTime = new Date();
+    const currentTimeForGetChats = currentTime;
+    const nextHour = new Date(currentTime);
+    nextHour.setHours(currentTime.getHours() + 1, 0, 0, 0);
 
-    if (hourCharacterChats) {
-      this.scheduleSend(hourCharacterChats);
+    const futureChats = await this.characterChatRepo.findBetween(
+      currentTimeForGetChats,
+      nextHour,
+    );
+
+    if (futureChats) {
+      this.scheduleSend(futureChats);
+      winstonLogger.log('send current chats ~ future chats', futureChats);
     }
-    winstonLogger.log('sending chats in an hour: ', hourCharacterChats);
-    return hourCharacterChats;
+    return futureChats;
   }
 
   // 비활성 유저에게 하루 한 번
@@ -101,9 +127,24 @@ export class ChatRoomService {
     );
   }
 
+  private scheduleSendOnlyReplys(replyChatLogs: CharacterChat[]) {
+    replyChatLogs.map((characterChat) => {
+      const timeToSend = characterChat.timeToSend.getTime();
+      const currentTime = new Date().getTime();
+      setTimeout(
+        () => {
+          //this goes to user domain currently
+          const type = 'reply';
+          this.eventEmitter.emit('broadcast', characterChat, type);
+        },
+        timeToSend - currentTime + 30 * 60 * 1000,
+      );
+    });
+  }
+
   private scheduleSend(hourChatLogs: CharacterChat[]) {
     hourChatLogs.map((characterChat) => {
-      const timeTosend = characterChat.timeToSend.getTime();
+      const timeToSend = characterChat.timeToSend.getTime();
       const currentTime = new Date().getTime();
 
       // characterChat 내용 예약
@@ -111,7 +152,7 @@ export class ChatRoomService {
         //this goes to user domain currently
         const type = 'chat';
         this.eventEmitter.emit('broadcast', characterChat, type);
-      }, timeTosend - currentTime);
+      }, timeToSend - currentTime);
 
       // 답장 있다면 30분 뒤로 예약
       if (characterChat.reply.length > 0) {
@@ -121,7 +162,7 @@ export class ChatRoomService {
             const type = 'reply';
             this.eventEmitter.emit('broadcast', characterChat, type);
           },
-          timeTosend - currentTime + 30 * 60 * 1000,
+          timeToSend - currentTime + 30 * 60 * 1000,
         );
       }
     });
