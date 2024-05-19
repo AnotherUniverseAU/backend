@@ -40,43 +40,44 @@ export class ChatRoomService implements OnModuleInit {
   }
 
   onModuleInit() {
-    this.checkChatTimeToSend();
+    this.checkPastChatTimeToSend();
   }
 
-  //check every hour
-  @Cron('0 * * * *')
-  async checkChatTimeToSend() {
+  async checkPastChatTimeToSend() {
     const currentTime = new Date();
     const prev30Min = new Date(currentTime.getTime() - 30 * 60 * 1000);
-    const nextHour = new Date(currentTime);
-    nextHour.setMinutes(0, 0, 0);
-    nextHour.setHours(currentTime.getHours() + 1);
-
-    winstonLogger.log('finding chat to send at time');
 
     const pastChats = await this.characterChatRepo.findBetween(
       prev30Min,
       currentTime,
     );
 
+    if (pastChats) {
+      this.scheduleSendOnlyReplys(pastChats);
+      winstonLogger.log('send prev5Min ~ current chats', pastChats);
+    }
+
+    return pastChats;
+  }
+
+  //check every hour
+  @Cron('0 * * * *')
+  async checkChatTimeToSend() {
+    const currentTime = new Date();
+    const currentTimeForGetChats = currentTime;
+    const nextHour = new Date(currentTime);
+    nextHour.setHours(currentTime.getHours() + 1, 0, 0, 0);
+
     const futureChats = await this.characterChatRepo.findBetween(
-      currentTime,
+      currentTimeForGetChats,
       nextHour,
     );
 
-    if (pastChats) {
-      this.scheduleSendOnlyReplys(pastChats);
-      winstonLogger.log('send prev30Min ~ current chats', pastChats.length);
-    }
-
     if (futureChats) {
       this.scheduleSend(futureChats);
-      winstonLogger.log(
-        'send current chats ~ future chats',
-        futureChats.length,
-      );
+      winstonLogger.log('send current chats ~ future chats', futureChats);
     }
-    return { pastChats, futureChats };
+    return futureChats;
   }
 
   // 비활성 유저에게 하루 한 번
