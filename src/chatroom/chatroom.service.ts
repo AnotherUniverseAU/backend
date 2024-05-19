@@ -40,33 +40,65 @@ export class ChatRoomService implements OnModuleInit {
   }
 
   onModuleInit() {
-    this.checkPastChatTimeToSend();
+    this.initialSchedular();
   }
 
-  async checkPastChatTimeToSend() {
+  async initialSchedular() {
     const currentTime = new Date();
     const prev30Min = new Date(currentTime.getTime() - 30 * 60 * 1000);
+    const nextHour = new Date(currentTime);
+    nextHour.setHours(currentTime.getHours() + 1, 0, 0, 0); //다음 정각 0분 0초로 고정해야함
+
+    //for Debug
+    // const currentTime = new Date();
+    // const prev30Min = new Date(currentTime.getTime() - 5 * 60 * 1000);
+    // const currentMinutes = currentTime.getMinutes();
+    // const next10Minutes = Math.ceil(currentMinutes / 10) * 10;
+    // const nextHour = new Date(currentTime);
+    // nextHour.setMinutes(next10Minutes, 0, 0);
 
     const pastChats = await this.characterChatRepo.findBetween(
       prev30Min,
       currentTime,
     );
 
+    const futureChats = await this.characterChatRepo.findBetween(
+      currentTime,
+      nextHour,
+    );
+
     if (pastChats) {
       this.scheduleSendOnlyReplys(pastChats);
-      winstonLogger.log('send prev5Min ~ current chats', pastChats);
+      winstonLogger.log('send prev30Min ~ current chats', pastChats);
     }
 
-    return pastChats;
+    if (futureChats) {
+      this.scheduleSend(futureChats);
+      winstonLogger.log('send current chats ~ future chats', futureChats);
+    }
+    return { futureChats, pastChats };
   }
 
   //check every hour
-  @Cron('0 * * * *')
+  // @Cron('0 * * * *')
+  @Cron('*/10 * * * *')
   async checkChatTimeToSend() {
     const currentTime = new Date();
     const currentTimeForGetChats = currentTime;
+    currentTimeForGetChats.setMinutes(0, 0, 0); //정각 0분 0초를 기준으로 조회해야함
     const nextHour = new Date(currentTime);
-    nextHour.setHours(currentTime.getHours() + 1, 0, 0, 0);
+    nextHour.setHours(currentTime.getHours() + 1, 0, 0, 0); //다음 정각 0분 0초로 고정
+
+    //forDebug
+    // const currentTime = new Date();
+
+    // const currentTimeForGetChats = currentTime;
+    // const minute = currentTime.getMinutes();
+    // currentTimeForGetChats.setMinutes(minute, 0, 0);
+
+    // const currentMinutes = currentTime.getMinutes();
+    // const nextHour = new Date(currentTime);
+    // nextHour.setMinutes(currentMinutes + 10, 0, 0);
 
     const futureChats = await this.characterChatRepo.findBetween(
       currentTimeForGetChats,
@@ -128,6 +160,9 @@ export class ChatRoomService implements OnModuleInit {
   }
 
   private scheduleSendOnlyReplys(replyChatLogs: CharacterChat[]) {
+    //Debug 할때 delay = 5 로 설정
+    const delay = 30;
+
     replyChatLogs.map((characterChat) => {
       const timeToSend = characterChat.timeToSend.getTime();
       const currentTime = new Date().getTime();
@@ -138,17 +173,19 @@ export class ChatRoomService implements OnModuleInit {
             const type = 'reply';
             this.eventEmitter.emit('broadcast', characterChat, type);
           },
-          timeToSend - currentTime + 30 * 60 * 1000,
+          timeToSend - currentTime + delay * 60 * 1000,
         );
       }
     });
   }
 
-  private scheduleSend(hourChatLogs: CharacterChat[]) {
-    hourChatLogs.map((characterChat) => {
+  private scheduleSend(chatLogs: CharacterChat[]) {
+    //Debug 할때 delay = 5 로 설정
+    const delay = 30;
+
+    chatLogs.map((characterChat) => {
       const timeToSend = characterChat.timeToSend.getTime();
       const currentTime = new Date().getTime();
-
       // characterChat 내용 예약
       setTimeout(() => {
         //this goes to user domain currently
@@ -164,7 +201,7 @@ export class ChatRoomService implements OnModuleInit {
             const type = 'reply';
             this.eventEmitter.emit('broadcast', characterChat, type);
           },
-          timeToSend - currentTime + 30 * 60 * 1000,
+          timeToSend - currentTime + delay * 60 * 1000,
         );
       }
     });
