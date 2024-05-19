@@ -21,12 +21,12 @@ export class LoggerSchedulerService {
     );
   }
 
-  @Cron('1 0 * * *')
+  @Cron('0 1 * * *')
   async uploadCache() {
     winstonLogger.log('uploading cache logs to azure');
     const yesterday = new Date();
     const pad = (num: number) => String(num).padStart(2, '0');
-    const yesterdayLog = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`;
+    const yesterdayLog = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate() - 1)}`;
 
     const yesterdayInfoLog = yesterdayLog + '.info.log';
     const yesterdayInfoLogDir = path.join(
