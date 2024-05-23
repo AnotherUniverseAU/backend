@@ -44,7 +44,7 @@ export class CharacterChatRepository {
     console.log('startOfHour : ', startOfHour);
     console.log('currentTime : ', currentTime);
     const characterChats = await this.characterChatModel.find({
-      timeToSend: { $gte: startOfHour, $lte: currentTime },
+      timeToSend: { $gte: startOfHour, $lt: currentTime },
     });
 
     if (characterChats) return characterChats;
