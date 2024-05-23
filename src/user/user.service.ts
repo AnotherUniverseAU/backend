@@ -204,11 +204,12 @@ export class UserService {
     );
   }
 
+  async getUsersByQuery(query: any): Promise<UserDocument[]> {
+    return await this.userRepo.findUsersByQuery(query);
+  }
+
   @OnEvent('sendMarketingMessage')
-  async sendMarketingMessages(
-    query: any,
-    marketingMessageContent: string,
-  ): Promise<UserDocument[]> {
+  async sendMarketingMessages(query: any, marketingMessageContent: string) {
     const users = await this.userRepo.findUsersByQuery(query);
 
     const marketingMessageTitle = 'AU';
