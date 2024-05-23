@@ -37,7 +37,7 @@ import { LoggerModule } from './common/logger/logger.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        uri: `mongodb+srv://${configService.get<string>('MONGODB_ID')}:${configService.get<string>('MONGO_DB_PWD')}@cluster0.aunvoxf.mongodb.net/?retryWrites=true&w=majority`,
+        uri: `mongodb+srv://${configService.get<string>('MONGODB_ID')}:${configService.get<string>('MONGO_DB_PWD')}@${configService.get<string>('MONGO_DB_HOST')}/${configService.get<string>('MONGO_DB_DATABASE')}?retryWrites=true&w=majority`,
       }),
     }),
     RedisModule.forRootAsync({
