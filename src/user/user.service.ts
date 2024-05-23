@@ -2,7 +2,7 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { User, UserDocument } from 'src/schemas/user.schema';
 import { UserRepository } from 'src/repository/user.repository';
 import { userDataDTO } from './dto/userData.dto';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { SubscriptionEventDTO } from 'src/global/dto/subscription-event.dto';
 import { Types } from 'mongoose';
 import { CharacterChat } from 'src/schemas/chat-schema/character-chat.schema';
@@ -18,6 +18,7 @@ export class UserService {
     private userRepo: UserRepository,
     private firebaseService: FirebaseService,
     private cancelRepo: CancelReasonRepository,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   getUserInfo(user: UserDocument): userDataDTO {
@@ -203,12 +204,14 @@ export class UserService {
     );
   }
 
+  @OnEvent('sendMarketingMessage')
   async sendMarketingMessages(
     query: any,
-    marketingMessageTitle: string,
-    marketingMessage: string,
+    marketingMessageContent: string,
   ): Promise<UserDocument[]> {
     const users = await this.userRepo.findUsersByQuery(query);
+
+    const marketingMessageTitle = 'AU';
 
     await Promise.all(
       users.map(async (user) => {
@@ -234,11 +237,27 @@ export class UserService {
         await this.firebaseService.sendUserNotification(
           user._id.toString(),
           marketingMessageTitle,
-          marketingMessage,
+          marketingMessageContent,
           user.fcmToken,
         );
       }),
     );
-    return users;
+  }
+
+  async setSendingMarketingMessage(
+    dateToSend: Date,
+    query: any,
+    marketingMessageContent: string,
+  ) {
+    const currentTime = new Date().getTime();
+    const timeToSend = dateToSend.getTime();
+
+    setTimeout(() => {
+      this.eventEmitter.emit(
+        'sendMarketingMessage',
+        query,
+        marketingMessageContent,
+      );
+    }, timeToSend - currentTime);
   }
 }
