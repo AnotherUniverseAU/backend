@@ -50,6 +50,12 @@ const changeJosa = (text, josa, last_char) => {
       case '로부터':
         // console.log("닉네임에 받침 있어 조사 '로부터' => '으로부터' 변경");
         return text.replace(josa, '으로부터');
+      case '라도':
+        // console.log("닉네임에 받침 있어 조사 '라도' => '이라도' 변경");
+        return text.replace(josa, '이라도');
+      case '와의':
+        // console.log("닉네임에 받침 있어 조사 '와의' => '과의' 변경");
+        return text.replace(josa, '과의');
       default:
         // console.log(
         //   '닉네임에 받침 있으나 텍스트에 바뀌는 조사 없음.',
@@ -91,7 +97,13 @@ const changeJosa = (text, josa, last_char) => {
         // console.log("닉네임에 받침 없어 조사 '으로써' => '로써' 변경");
         return text.replace(josa, '로써');
       case '으로부터':
-        // console.log("닉네임에 받침 없어 조사 '으로부터' => '로부터' 변경");
+      // console.log("닉네임에 받침 없어 조사 '으로부터' => '로부터' 변경");
+      case '이라도':
+        // console.log("닉네임에 받침 없어 조사 '라도' => '이라도' 변경");
+        return text.replace(josa, '라도');
+      case '과의':
+        // console.log("닉네임에 받침 있어 조사 '과의' => '와의' 변경");
+        return text.replace(josa, '와의');
         return text.replace(josa, '로부터');
       default:
         // console.log(
