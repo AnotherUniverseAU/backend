@@ -14,6 +14,17 @@ export class FirebaseService {
       'GOOGLE_APPLICATION_CREDENTIALS',
     );
     const serviceAccount = JSON.parse(serviceAccountPath);
+    // const serviceAccount = {
+    //   projectId: configService.get<string>(
+    //     'GOOGLE_APPLICATION_CREDENTIALS_PROJECT_ID',
+    //   ),
+    //   privateKey: configService
+    //     .get<string>('GOOGLE_APPLICATION_CREDENTIALS_PRIVATE_KEY')
+    //     .replace(/\\n/g, '\n'),
+    //   clientEmail: configService.get<string>(
+    //     'GOOGLE_APPLICATION_CREDENTIALS_CLIENT_EMAIL',
+    //   ),
+    // };
     if (!admin.apps.length) {
       this.firebaseApp = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
