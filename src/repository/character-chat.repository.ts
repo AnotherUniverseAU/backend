@@ -37,16 +37,31 @@ export class CharacterChatRepository {
     return result;
   }
 
-  async findByHour(startOfHour: Date): Promise<CharacterChat[]> {
-    const endOfHour = new Date(startOfHour);
-    endOfHour.setHours(startOfHour.getHours() + 1);
+  async findBetween(
+    startOfHour: Date,
+    currentTime: Date,
+  ): Promise<CharacterChat[]> {
+    console.log('startOfHour : ', startOfHour);
+    console.log('currentTime : ', currentTime);
     const characterChats = await this.characterChatModel.find({
-      timeToSend: { $gte: startOfHour, $lte: endOfHour },
+      timeToSend: { $gte: startOfHour, $lte: currentTime },
     });
 
     if (characterChats) return characterChats;
     else return [];
   }
+
+  // async findByHour(startOfHour: Date): Promise<CharacterChat[]> {
+  //   const endOfHour = new Date(startOfHour);
+  //   endOfHour.setMinutes(0, 0, 0);
+  //   endOfHour.setHours(startOfHour.getHours() + 1);
+  //   const characterChats = await this.characterChatModel.find({
+  //     timeToSend: { $gte: startOfHour, $lte: endOfHour },
+  //   });
+
+  //   if (characterChats) return characterChats;
+  //   else return [];
+  // }
 
   async addManyCharacterChats(
     payload: ChatCreationDTO[],
@@ -109,7 +124,7 @@ export class CharacterChatRepository {
     createdDate: Date,
   ): Promise<CharacterChat[]> {
     const { startOfDay, endOfDay } = getOneDayWindowPagination(date, offset);
-    var validatedStartofDay: Date;
+    let validatedStartofDay: Date;
     if (startOfDay < createdDate) {
       validatedStartofDay = createdDate;
     } else {
