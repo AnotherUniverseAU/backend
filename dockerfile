@@ -21,7 +21,7 @@ RUN chmod 600 /root/.ssh/id_rsa && chmod 700 /root/.ssh
 RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
 
 # Clone your repository using SSH
-RUN git clone -b master git@github.com:anotheruniverse/backend.git .
+RUN git clone -b dev --single-branch git@github.com:AnotherUniverseAU/backend.git .
 # RUN git clone git@github.com:AnotherUniverseAU/backend.git .
 
 # Install dependencies

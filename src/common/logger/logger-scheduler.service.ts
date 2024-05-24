@@ -21,12 +21,15 @@ export class LoggerSchedulerService {
     );
   }
 
-  @Cron('1 0 * * *')
+  // 매일 1시마다 전날 로그 올리기 (영국 시간 기준 하루)
+  @Cron('0 1 * * *')
+  // 로거 5분마다 테스트
+  // @Cron('*/5 * * * *')
   async uploadCache() {
     winstonLogger.log('uploading cache logs to azure');
     const yesterday = new Date();
     const pad = (num: number) => String(num).padStart(2, '0');
-    const yesterdayLog = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`;
+    const yesterdayLog = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate() - 1)}`;
 
     const yesterdayInfoLog = yesterdayLog + '.info.log';
     const yesterdayInfoLogDir = path.join(
