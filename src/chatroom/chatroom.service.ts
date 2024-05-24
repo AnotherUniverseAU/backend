@@ -34,7 +34,7 @@ export class ChatRoomService implements OnModuleInit {
     private firebaseService: FirebaseService,
   ) {
     this.containerName = this.configService.get<string>(
-      'AZURE_STORAGE_CONTAINER_NAME',
+      'AZURE_STORAGE_IMG_CONTAINER_NAME',
     );
     this.blobServiceClient = BlobServiceClient.fromConnectionString(
       this.configService.get<string>('AZURE_STORAGE_CONNECTION_STRING'),
@@ -337,8 +337,12 @@ export class ChatRoomService implements OnModuleInit {
     timeToSend: Date,
   ): Promise<UpdateWriteOpResult> {
     const fileBuffer = image.buffer;
-    // const koreanTTS = new Date(timeToSend.getTime() + 9 * 60 * 60 * 1000);
+
+    // local에서 테스트할 때 아래 주석 풀고, result에 있는 koreanTTS <-> timeToSend 교체하기 (addImage는 로컬에서 올려주자)
+
+    // const koreanTTS = new Date(timeToSend.getTime() - 9 * 60 * 60 * 1000);
     const timeFormat = moment(timeToSend).format('YYYY-MM-DD/HH-mm');
+    // const timeFormat = moment(koreanTTS).format('YYYY-MM-DD/HH-mm');
     const newImageName = `${characterId}/${timeFormat}_${new Types.ObjectId()}.${image.originalname.split('.')[1]}`;
 
     winstonLogger.log(
@@ -352,6 +356,7 @@ export class ChatRoomService implements OnModuleInit {
 
     const result = await this.characterChatRepo.addImageToChat(
       characterId,
+      // koreanTTS,
       timeToSend,
       imageUrl,
     );
@@ -400,11 +405,11 @@ export class ChatRoomService implements OnModuleInit {
       this.containerName,
     );
     const blobClient = containerClient.getBlockBlobClient(fileName);
-    const options = { blobHTTPHeaders: { blobContentType: 'image/svg+xml' } };
+    // const options = { blobHTTPHeaders: { blobContentType: 'image/svg+xml' } };
     const result = await blobClient.upload(
       fileBuffer,
       fileBuffer.length,
-      options,
+      // options,
     );
     return { fileUrl: blobClient.url, result };
   }

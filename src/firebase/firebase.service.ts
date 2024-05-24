@@ -14,6 +14,9 @@ export class FirebaseService {
       'GOOGLE_APPLICATION_CREDENTIALS',
     );
     const serviceAccount = JSON.parse(serviceAccountPath);
+
+    // npm package 때문에 json 오류 생길 때 아래 주석 코드로 위 코드 대체
+
     // const serviceAccount = {
     //   projectId: configService.get<string>(
     //     'GOOGLE_APPLICATION_CREDENTIALS_PROJECT_ID',
