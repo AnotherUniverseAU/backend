@@ -123,12 +123,9 @@ export class UserController {
   }
 
   @UseGuards(CommonJwtGuard)
-  @Get('get-users-by-query')
+  @Post('get-users-by-query')
   @HttpCode(200)
-  async getUsersByQuery(
-    @Req() req: Request,
-    @Query('queries') queries: string,
-  ) {
+  async getUsersByQuery(@Req() req: Request, @Body('queries') queries: string) {
     const user = req.user as UserDocument;
     if (user.role !== 'admin') {
       throw new UnauthorizedException('Unauthorized access');
@@ -156,8 +153,8 @@ export class UserController {
   @HttpCode(200)
   async setSendMarkettingMessage(
     @Req() req: Request,
-    @Query('queries') queries: string,
-    @Body('dateToSend') dateToSend: Date,
+    @Body('queries') queries: string,
+    @Body('dateToSend') dateToSend: string,
     @Body('marketingMessageContent') marketingMessageContent: string,
   ) {
     const user = req.user as UserDocument;
@@ -165,7 +162,9 @@ export class UserController {
       throw new UnauthorizedException('Unauthorized access');
     }
 
-    if (dateToSend <= new Date()) {
+    const dateFormat = new Date(dateToSend);
+
+    if (dateFormat <= new Date()) {
       throw new HttpException('dateToSend is invalid', HttpStatus.BAD_REQUEST);
     }
 
@@ -184,7 +183,7 @@ export class UserController {
     }
 
     await this.userService.setSendingMarketingMessage(
-      dateToSend,
+      dateFormat,
       parsedQuery,
       marketingMessageContent,
     );
